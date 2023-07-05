@@ -2,7 +2,12 @@ import numpy as np
 from spatialmath.base import transl, trotz
 from roboticstoolbox import DHRobot, RevoluteDH
 
-class LBR_iiwa(DHRobot):
+from Toolbox.EnvironmentPyPlot import Env
+from Controller import Controller
+
+from Toolbox.IK import IK
+
+class LBR_iiwa(DHRobot, Controller, IK):
     """
     Class that models a LBR iiwa 14R 820 manipulator
 
@@ -54,6 +59,7 @@ class LBR_iiwa(DHRobot):
         self.qr = np.array([0,0,0, np.pi/2, 0,0,0])
         self.qz = np.zeros(7)
         self.q0 = np.array([-0.01647629216313362, 0.037338417023420334, 0.0009847808396443725, 0.07846628129482269, -0.0013139393413439393, 0.04261644929647446, 0.017349982634186745])
+        self.q = self.q0
         
         self.addconfiguration("qr", self.qr)
         self.addconfiguration("qz", self.qz)
@@ -68,9 +74,10 @@ class LBR_iiwa(DHRobot):
         self.Kp_cart = np.eye(6)*25 # Kp_cart = np.eye(6)*17
         self.Kp_joint = np.eye(7)*35
         self.controller = 'cart'
-                
+        
+        self.env = Env(self)
+
 if __name__ == "__main__":  # pragma nocover
 
     robot = LBR_iiwa()
     print(robot)
-    
