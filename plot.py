@@ -14,6 +14,7 @@ robot.env.new()
 
 ik = 'ikine_LMS'
 for i, target in enumerate(targets):
+   
     # Initial config
     q0 = robot.q
     T0 = robot.fkine(robot.q)
@@ -29,6 +30,16 @@ for i, target in enumerate(targets):
     
     jtraj = rtb.jtraj(q0, q1, robot.t)
     traj = [robot.fkine(x) for x in jtraj.q]
+    
+    robot.env.point3D(
+        [target.x, target.y, target.z],
+        label=f'Target {i+1}: {target.gripperActuation} {target.object}'
+    )
+    
+    rtb_jtraj_path = robot.env.path(
+        traj,
+        label=f'rtb.jtraj'
+    )
     
     x0 = np.block([T0.t, T0.eul()])
 
@@ -50,3 +61,5 @@ for i, target in enumerate(targets):
         if robot.isClose(q1, q_new):
             break
         # print("--- %s seconds ---" % (time.time() - start_time))
+        
+    robot.env.clear([rtb_jtraj_path])
