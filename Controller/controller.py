@@ -1,12 +1,11 @@
 import numpy as np
-from spatialmath import SE3
 import math
 
 class Controller():
     def __init__(self) -> None:
         pass
     
-    def control(self, x_ref, x_dot_ref, q, gripperAct = '', gripperObj = ''):
+    def control(self, x_ref, x_dot_ref, q):
 
         if self.controller == 'cart':
             q_new, q_control_dot = self.cartesianSpaceController(x_ref, x_dot_ref, q)
@@ -62,22 +61,13 @@ class Controller():
     #     grads = np.array()
     #     return dists, grads
 
-    def isClose(self, q, T: SE3):
-        pose = self.fkine(q)
-
-        target = np.block([T.t, T.eul()])
-        real = np.block([pose.t, pose.eul()])
-        
-        if len(target) != len(real):
+    def isClose(self, q_target, q_real, abs_tol=0.169):
+       
+        if len(q_target) != len(q_real):
             return False
-        i = 0
-        for target, real in zip(target, real):
-            if i >= 3:
-                abs_tol = 1.5
-            else:
-                abs_tol = 0.01
-            if not math.isclose(target, real, abs_tol=abs_tol):
+
+        for q_target, q_real in zip(q_target, q_real):
+            if not math.isclose(q_target, q_real, abs_tol=abs_tol):
                 return False
-            i = i+1
         
         return True

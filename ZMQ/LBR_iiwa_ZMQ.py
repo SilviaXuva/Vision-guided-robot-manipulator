@@ -4,8 +4,8 @@ from ZMQ.Coppelia import Coppelia
 from ZMQ.Gripper import Gripper_ChildScript
 
 class Coppelia_LBR_iiwa(LBR_iiwa, Coppelia):
-    def __init__(self, gripper = True):
-        LBR_iiwa.__init__(self)
+    def __init__(self, T_tot, gripper = True):
+        LBR_iiwa.__init__(self, T_tot=T_tot)
         Coppelia.__init__(self)
         self.stopSimulation()
         time.sleep(2)

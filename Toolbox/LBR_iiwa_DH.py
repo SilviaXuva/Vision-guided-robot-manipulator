@@ -31,7 +31,7 @@ class LBR_iiwa(DHRobot, Controller, IK):
     .. codeauthor:: Peter Corke
     """  # noqa
 
-    def __init__(self):
+    def __init__(self, T_tot = 10):
 
         # deg = np.pi/180
         mm = 1e-3
@@ -68,7 +68,7 @@ class LBR_iiwa(DHRobot, Controller, IK):
         self.number_joints = self.n
         
         self.Ts = 0.05
-        self.T_tot = 10
+        self.T_tot = T_tot
         self.t = np.arange(0, self.T_tot + self.Ts, self.Ts)
         
         self.Kp_cart = np.eye(6)*25 # Kp_cart = np.eye(6)*17
