@@ -76,6 +76,8 @@ class LBR_iiwa(DHRobot, Controller, IK):
         self.controller = 'cart'
         
         self.env = Env(self)
+        self.q_time = list()
+        self.q_control_time = list()
 
 if __name__ == "__main__":  # pragma nocover
 

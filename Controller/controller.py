@@ -14,7 +14,7 @@ class Controller():
         
         if hasattr(self, 'setJointTargetVelocity'):
             self.setJointTargetVelocity(q_control_dot)
-        self.q = q_new
+        self.qd = q_control_dot
                 
         return q_new
 

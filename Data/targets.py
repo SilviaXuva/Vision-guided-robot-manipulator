@@ -42,13 +42,18 @@ initial = Pose(
     0, 0, 1.40836875e+00, 0, 0, 0
 )
 
-targets1 = [
+targets1_initial = [
     red[0],
     initial,
     red[1]
 ]
 
-targets = [
+targets2 = [
+    red[0],
+    red[1]
+]
+
+targets_initial = [
     red[0],
     initial,
     red[1],
@@ -60,4 +65,13 @@ targets = [
     blue[0],
     initial,
     blue[1]
+]
+
+targets = [
+    red[0],
+    red[1],
+    blue[0],
+    blue[1],
+    green[0],
+    green[1]
 ]
