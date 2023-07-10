@@ -48,7 +48,7 @@ targets1_initial = [
     red[1]
 ]
 
-targets2 = [
+targets2_without_initial = [
     red[0],
     red[1]
 ]
