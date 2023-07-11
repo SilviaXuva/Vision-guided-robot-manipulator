@@ -27,7 +27,6 @@ plot["path"] = True if plot["reference_path"] or plot["real_path"] else False
 if plot["path"]:
     robot.env.new()  # Start toolbox environment plot
 
-ik = 'ikine_LM'  # Set inverse kinematic solver
 for i, target in enumerate(targets):  # Loop each target
    
     # Initial config
@@ -38,10 +37,7 @@ for i, target in enumerate(targets):  # Loop each target
     T1 = SE3.Trans(
             target.x, target.y, target.z
         )*SE3.Rx(target.rx)*SE3.Ry(target.ry)*SE3.Rz(target.rz)
-    if ik == 'ikine_LM':
-        q1 = robot.ikine_LM(T1, q0=q0, joint_limits=True, mask=[30, 1, 1, 0, 0, 0]).q  # TODO: Search more about mask
-    else:
-        q1 = robot.ikine_LMS(T1).q
+    q1 = robot.ikine_LMS(T1).q # Set inverse kinematic solver
 
     jtraj = rtb.jtraj(q0, q1, robot.t)
     traj = [robot.fkine(x) for x in jtraj.q]  # Set traj as forward kinematics matrix
@@ -58,7 +54,6 @@ for i, target in enumerate(targets):  # Loop each target
             label=f'rtb.jtraj'
         )  # Plot expected trajectory path
     else:
-        point = None
         rtb_jtraj_path = None
     
     x0 = np.block([T0.t, T0.eul()])  # Set first cartesian position

@@ -5,9 +5,7 @@ from roboticstoolbox import DHRobot, RevoluteDH
 from Toolbox.EnvironmentPyPlot import Env
 from Controller import Controller
 
-from Toolbox.IK import IK
-
-class LBR_iiwa(DHRobot, Controller, IK):
+class LBR_iiwa(DHRobot, Controller):
     """
     Class that models a LBR iiwa 14R 820 manipulator
 
