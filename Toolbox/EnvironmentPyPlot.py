@@ -22,6 +22,7 @@ class Env(PyPlot):
             current = fig.canvas.manager.get_window_title()
             fig.canvas.manager.set_window_title(f'{current} - {title}')
         self.add(self.robot)
+        return fig
         
     def point3D(self, cart: np.array = np.array([0,0,0]), label: str = 'Target', color: str = 'red'):
         """ Plot 3D Point

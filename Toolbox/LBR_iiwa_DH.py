@@ -69,7 +69,7 @@ class LBR_iiwa(DHRobot, Controller):
         self.T_tot = T_tot
         self.t = np.arange(0, self.T_tot + self.Ts, self.Ts)
         
-        self.Kp_cart = np.eye(6)*25 # Kp_cart = np.eye(6)*17
+        self.Kp_cart = np.eye(6)*25 #25  #np.concatenate([np.eye(6)[:3]*25, np.eye(6)[3:4]*10, np.eye(6)[4:6]*12]) # # Kp_cart = np.eye(6)*17
         self.Kp_joint = np.eye(7)*35
         self.controller = 'cart'
         
