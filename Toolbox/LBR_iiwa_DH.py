@@ -1,6 +1,4 @@
-from datetime import datetime
 import numpy as np
-import os
 from spatialmath.base import transl, trotz
 from roboticstoolbox import DHRobot, RevoluteDH
 
@@ -78,10 +76,6 @@ class LBR_iiwa(DHRobot, Controller):
         self.env = Env(self)
         self.q_ref = list()
         self.q_control = list()
-        
-        execution_time = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-        self.output_path = fr'.\Output\{execution_time}'
-        os.makedirs(self.output_path, exist_ok=True)
 
 if __name__ == "__main__":  # pragma nocover
 

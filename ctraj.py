@@ -31,7 +31,7 @@ def Example1():
         robot.env.path(
             traj,
             label=f'Reference path',
-            save_path = fr'{robot.output_path}\{target.gripperActuation.title()} {target.object}_Reference path.png'
+            save_path = fr'{target.path}_Reference path.png'
         )  # Plot reference trajectory path
         
         robot.control(T0, T1, traj)
@@ -40,17 +40,17 @@ def Example1():
         robot.env.path(
             real_traj,
             label=f'Real path',
-            save_path = fr'{robot.output_path}\{target.gripperActuation.title()} {target.object}_Real path.png'
+            save_path = fr'{target.path}_Real path.png'
         ) # Plot real trajectory path
         
         robot.env.joints(
             np.array(robot.q_ref),
             np.array(robot.q_control),
-            save_path = fr'{robot.output_path}\{target.gripperActuation.title()} {target.object}_Joints ref+real.png',
+            save_path = fr'{target.path}_Joints ref+real.png',
             block = False
         ) # Plot joints
         
-        self.env.clear()
+        robot.env.clear()
         
     # stopSimulation()
 

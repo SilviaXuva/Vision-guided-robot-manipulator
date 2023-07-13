@@ -1,5 +1,6 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import os
 from roboticstoolbox.backends.PyPlot import PyPlot
 from spatialmath import SE3
 import spatialmath.base as base
@@ -64,6 +65,7 @@ class Env(PyPlot):
         self.ax.plot3D(x, y, z, label=label)[0]
         self.ax.legend()
         if save_path != '':
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
             self.workspace.savefig(save_path)
 
     def joints(
@@ -114,6 +116,7 @@ class Env(PyPlot):
         ax.set_xlabel("Time (s)")
         
         if save_path != '':
+            os.makedirs(os.path.dirname(save_path), exist_ok=True)
             fig.savefig(save_path)
         
         if block:

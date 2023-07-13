@@ -1,4 +1,8 @@
+from datetime import datetime
 import numpy as np
+
+execution_time = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+output_path = fr'.\Output\{execution_time}'
 
 class Pose():
     def __init__(self, x, y, z, rx, ry, rz, gripperActuation=None, object=None) -> None:
@@ -10,6 +14,8 @@ class Pose():
         self.rz = rz
         self.gripperActuation = gripperActuation
         self.object = object
+        if gripperActuation != None and object != None:
+            self.path = fr'{output_path}\{self.object.title()}\{self.gripperActuation.title()}'
         
 red = [
     Pose(
