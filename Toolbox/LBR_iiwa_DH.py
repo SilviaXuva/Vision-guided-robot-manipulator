@@ -1,4 +1,6 @@
+from datetime import datetime
 import numpy as np
+import os
 from spatialmath.base import transl, trotz
 from roboticstoolbox import DHRobot, RevoluteDH
 
@@ -69,13 +71,17 @@ class LBR_iiwa(DHRobot, Controller):
         self.T_tot = T_tot
         self.t = np.arange(0, self.T_tot + self.Ts, self.Ts)
         
-        self.Kp_cart = np.eye(6)*25 #25  #np.concatenate([np.eye(6)[:3]*25, np.eye(6)[3:4]*10, np.eye(6)[4:6]*12]) # # Kp_cart = np.eye(6)*17
+        self.Kp_cart = np.concatenate([np.eye(6)[:3]*1, np.eye(6)[3:]*3]) # # Kp_cart = np.eye(6)*17 || np.eye(6)*25
         self.Kp_joint = np.eye(7)*35
         self.controller = 'cart'
         
         self.env = Env(self)
-        self.q_time = list()
-        self.q_control_time = list()
+        self.q_ref = list()
+        self.q_control = list()
+        
+        execution_time = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+        self.output_path = fr'.\Output\{execution_time}'
+        os.makedirs(self.output_path, exist_ok=True)
 
 if __name__ == "__main__":  # pragma nocover
 

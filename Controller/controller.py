@@ -1,22 +1,57 @@
 import numpy as np
 import math
+from roboticstoolbox import xplot
 
 class Controller():
     def __init__(self) -> None:
         pass
     
-    def control(self, x_ref, x_dot_ref, q):
+    def control(self, T0, T1, traj):
+        """Proportional controller
 
-        if self.controller == 'cart':
-            q_new, q_control_dot = self.cartesianSpaceController(x_ref, x_dot_ref, q)
-        # elif self.controller == 'joint':
-        #     q0, q_control_dot = self.JointSpaceController(q0, x_dot_ref, q)
+        Args:
+            T0 (SE3): Initial pose
+            T1 (SE3): Final/Target pose
+            traj (list): List of pose planning (SE3)
+        """
+        self.q_ref = list()
+        self.q_control = list()
+
+        ik = self.ikine_LM
+        kwargs = {}
         
-        if hasattr(self, 'setJointTargetVelocity'):
-            self.setJointTargetVelocity(q_control_dot)
-        self.q = q_new
+        q1 = ik(T1, **kwargs).q  # Final config
+        x0 = np.block([T0.t, T0.eul()])  # Initial end-effector position
+        
+        for i in range(len(traj)):
+            T_ref = traj[i]
+            self.q_ref.append(ik(T_ref, **kwargs).q)
+            
+            if hasattr(self, 'getJointPosition'):
+                q = self.getJointPosition()
+            else:
+                q = self.q
+            
+            if self.controller == 'cart':
+                x_ref = np.block([T_ref.t, T_ref.eul()])
+                x_dot_ref = (x_ref - x0)/self.Ts
+                x0 = x_ref
                 
-        return q_new
+                q_new, q_control_dot = self.cartesianSpaceController(x_ref, x_dot_ref, q)
+                
+            elif self.controller == 'joint':
+                q0, q_control_dot = self.jointSpaceController(q0, x_dot_ref, q)
+            
+            self.q_control.append(q_new)
+            
+            if hasattr(self, 'setJointTargetVelocity'):
+                self.setJointTargetVelocity(q_control_dot)
+            self.qd = q_control_dot
+            
+            self.env.step()
+
+            if self.isClose(q1, q_new):
+                break
 
     def cartesianSpaceController(self, x_ref, x_dot_ref, q):
         pose = self.fkine(q)
@@ -31,7 +66,7 @@ class Controller():
 
     def jointSpaceController(self, q_dot_ref, x_dot_ref, q):
         q_dot_dot = self.inverseDifferentialKinematics(q_dot_ref, x_dot_ref)
-        q_dot_new = q_dot_ref + q_dot_dot*self.Ts          #Euler integration
+        q_dot_new = q_dot_ref + q_dot_dot*self.Ts #Euler integration
         q_err = q_dot_new - q
         control_signal = self.Kp_joint@q_err
         q_control_dot = control_signal + q_dot_dot

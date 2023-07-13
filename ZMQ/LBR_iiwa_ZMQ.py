@@ -12,6 +12,7 @@ class Coppelia_LBR_iiwa(LBR_iiwa, Coppelia):
         self.model = 'LBRiiwa14R820'
         self.handle = self.getRobotHandle()
         self.joints = self.getJoints()
+        self.q = self.getJointPosition()
         
         if gripper:
             self.Gripper = Gripper_ChildScript()
