@@ -29,7 +29,7 @@ class LBR_iiwa(DHRobot, Controller):
     .. codeauthor:: Peter Corke
     """  # noqa
 
-    def __init__(self, T_tot = 10):
+    def __init__(self, T_tot = 10, Kt = 1, Kr = 3):
 
         # deg = np.pi/180
         mm = 1e-3
@@ -69,13 +69,21 @@ class LBR_iiwa(DHRobot, Controller):
         self.T_tot = T_tot
         self.t = np.arange(0, self.T_tot + self.Ts, self.Ts)
         
-        self.Kp_cart = np.concatenate([np.eye(6)[:3]*1, np.eye(6)[3:]*3]) # # Kp_cart = np.eye(6)*17 || np.eye(6)*25
+        self.Kp_cart = np.concatenate([np.eye(6)[:3]*Kt, np.eye(6)[3:]*Kr]) # # Kp_cart = np.eye(6)*17 || np.eye(6)*25
         self.Kp_joint = np.eye(7)*35
         self.controller = 'cart'
+        self.trans_tol = self.rot_tol = 0.8
         
         self.env = Env(self)
+        
         self.q_ref = list()
         self.q_control = list()
+        
+    def getJointPosition(self):
+        return self.q
+    
+    def setJointTargetVelocity(self, qd):
+        self.qd = qd
 
 if __name__ == "__main__":  # pragma nocover
 

@@ -120,11 +120,31 @@ class Env(PyPlot):
             fig.savefig(save_path)
         
         if block:
-            wait(fig, save_path)
+            MsgBox = messagebox.showinfo('Exit?', 'Are you sure you want to exit?', icon = 'warning')
+            if MsgBox == 'ok':
+                plt.close(fig)
         else:
             plt.close(fig)
     
-def wait(fig, save_path):
-    MsgBox = messagebox.showinfo('Exit?', 'Are you sure you want to exit?', icon = 'warning')
-    if MsgBox == 'ok':
-        plt.close(fig)
+    def plot_ref(self, target, T1, traj):
+        self.pose(T1)
+        self.path(
+            traj, 
+            label = 'Reference path', 
+            save_path = fr'{target.path}_Reference path.png'
+        )
+        
+    def plot_real(self, target):
+        traj = [self.robot.fkine(q_control) for q_control in self.robot.q_control]  # Calculate real trajectory
+        self.path(
+            traj, 
+            label = 'Reference path', 
+            save_path = fr'{target.path}_Real path.png'
+        )
+        self.joints(
+            np.array(self.robot.q_ref), 
+            np.array(self.robot.q_control), 
+            save_path = fr'{target.path}_Joints ref+real.png', 
+            block = False
+        )
+        self.clear()

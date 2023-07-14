@@ -14,43 +14,35 @@ class Controller():
             T1 (SE3): Final/Target pose
             traj (list): List of pose planning (SE3)
         """
+        
         self.q_ref = list()
         self.q_control = list()
 
         ik = self.ikine_LM
         kwargs = {}
         
-        q1 = ik(T1, **kwargs).q  # Final config
         x0 = np.block([T0.t, T0.eul()])  # Initial end-effector position
         
         for i in range(len(traj)):
             T_ref = traj[i]
             self.q_ref.append(ik(T_ref, **kwargs).q)
-            
-            if hasattr(self, 'getJointPosition'):
-                q = self.getJointPosition()
-            else:
-                q = self.q
+
+            q = self.getJointPosition()
             
             if self.controller == 'cart':
                 x_ref = np.block([T_ref.t, T_ref.eul()])
                 x_dot_ref = (x_ref - x0)/self.Ts
                 x0 = x_ref
-                
                 q_new, q_control_dot = self.cartesianSpaceController(x_ref, x_dot_ref, q)
-                
             elif self.controller == 'joint':
                 q0, q_control_dot = self.jointSpaceController(q0, x_dot_ref, q)
             
             self.q_control.append(q_new)
             
-            if hasattr(self, 'setJointTargetVelocity'):
-                self.setJointTargetVelocity(q_control_dot)
-            self.qd = q_control_dot
-            
+            self.setJointTargetVelocity(q_control_dot)
             self.env.step()
 
-            if self.isClose(q1, q_new):
+            if self.isClose(T1, q_new, self.trans_tol, self.rot_tol):
                 break
 
     def cartesianSpaceController(self, x_ref, x_dot_ref, q):
@@ -96,13 +88,23 @@ class Controller():
     #     grads = np.array()
     #     return dists, grads
 
-    def isClose(self, q_target, q_real, abs_tol=0.169):
-       
-        if len(q_target) != len(q_real):
+    def isClose(self, T_target, q_real, trans_tol = 1, rot_tol = 1):
+        x_tol = y_tol = z_tol = trans_tol
+        rx_tol = ry_tol = rz_tol = rot_tol
+        
+        target = np.block([T_target.t, T_target.eul()])
+        T_real = self.fkine(q_real)
+        real = np.block([T_real.t, T_real.eul()])
+
+        if len(target) != len(real):
             return False
 
-        for q_target, q_real in zip(q_target, q_real):
-            if not math.isclose(q_target, q_real, abs_tol=abs_tol):
+        for i, (target, real) in enumerate(zip(target, real)):
+            if i < 3:
+                tol = trans_tol
+            else:
+                tol = rot_tol
+            if not math.isclose(target, real, abs_tol=tol):
                 return False
         
         return True

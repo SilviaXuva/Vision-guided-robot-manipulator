@@ -2,55 +2,32 @@ def Example1():
     """ Working with targets from Data.targets, Cartesian Trajectory and Coppelia """
     
     from Data.targets import targets as targets
-    import numpy as np
     from spatialmath import SE3
     import roboticstoolbox as rtb
     from Toolbox.LBR_iiwa_DH import LBR_iiwa
 
-    robot = LBR_iiwa(T_tot=5)
+    robot = LBR_iiwa(T_tot = 5, Kt = 1, Kr = 1)
     
     robot.env.new()
     # startSimulation()
 
     for i, target in enumerate(targets):
         # Initial config
-        q0 = robot.q  # robot.getJointPosition() 
-        T0 = robot.fkine(q0)
+        T0 = robot.fkine(robot.getJointPosition())
         
         # Final pose
         T1 = SE3.Trans(
             target.x, target.y, target.z
         )*SE3.Rx(target.rx)*SE3.Ry(target.ry)*SE3.Rz(target.rz)
         
-        ctraj = rtb.ctraj(T0, T1, robot.t)
-        traj = [SE3(pose) for pose in ctraj.A]
+        ctraj = rtb.ctraj(T0, T1, robot.t)  # Calculate reference cartesian trajectory
+        traj = [SE3(pose) for pose in ctraj.A]  # Transform each pose into SE3
 
-        robot.env.pose(
-            T1
-        )  # Plot target pose
-        robot.env.path(
-            traj,
-            label=f'Reference path',
-            save_path = fr'{target.path}_Reference path.png'
-        )  # Plot reference trajectory path
+        robot.env.plot_ref(target, T1, traj)  # Plot target pose and reference trajectory path
         
-        robot.control(T0, T1, traj)
+        robot.control(T0, T1, traj) # Control
         
-        real_traj = [robot.fkine(q_control) for q_control in robot.q_control]  # Calculate real trajectory path
-        robot.env.path(
-            real_traj,
-            label=f'Real path',
-            save_path = fr'{target.path}_Real path.png'
-        ) # Plot real trajectory path
-        
-        robot.env.joints(
-            np.array(robot.q_ref),
-            np.array(robot.q_control),
-            save_path = fr'{target.path}_Joints ref+real.png',
-            block = False
-        ) # Plot joints
-        
-        robot.env.clear()
+        robot.env.plot_real(target)  # Plot real trajectory path and joints
         
     # stopSimulation()
 
