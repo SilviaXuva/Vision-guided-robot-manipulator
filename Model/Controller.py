@@ -13,7 +13,7 @@ class Controller():
             T1 (SE3): Final/Target pose
             traj (list): List of pose (SE3)
         """
-        self.env.plot_ref(T1, traj)
+        self.plot_ref(T1, traj)
 
         x0 = np.block([T0.t, T0.eul()])  # Initial end-effector position
         
@@ -31,12 +31,14 @@ class Controller():
                 q0, q_control_dot = self.jointSpaceController(q0, x_dot_ref, q)
             
             self.setJointTargetVelocity(q_control_dot)
-            self.env.traj()
                 
             if self.isClose(T1, q_new, self.trans_tol, self.rot_tol):
                 break
+            
+            # if i >= len(traj) - 10:
+            #     print()
 
-        self.env.plot_real(block = False)
+        self.plot_real(block = False)
 
     def cartesianSpaceController(self, x_ref, x_dot_ref, q):
         pose = self.fkine(q)
@@ -99,5 +101,19 @@ class Controller():
                 tol = rot_tol
             if not math.isclose(target, real, abs_tol=tol):
                 return False
-        
+            
+        # trans_tol = 0.005
+        # rot_tol = 1
+
+        # target_ = np.block([T_target.t, T_target.eul()])
+        # T_real = self.fkine(q_real)
+        # real_ = np.block([T_real.t, T_real.eul()])
+
+        # for i, (target, real) in enumerate(zip(target_, real_)):
+        #     if i < 3:
+        #         tol = trans_tol
+        #     else:
+        #         tol = rot_tol
+        #     print(i, math.isclose(target, real, abs_tol=tol))
+            
         return True

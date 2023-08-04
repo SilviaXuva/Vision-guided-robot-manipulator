@@ -1,55 +1,52 @@
 import numpy as np
-from ZMQ.zmqRemoteApi import RemoteAPIClient
+import time
+from zmqRemoteApi import RemoteAPIClient
 
 client = RemoteAPIClient()
 sim = client.getObject('sim')
 
-def stopSimulation():
-    sim.stopSimulation()
-    
-def startSimulation():
-    sim.startSimulation()
-
 class Coppelia():
-    def __init__(self) -> None:
+    def __init__(self, robot = None) -> None:
+        self.robot = robot
+        
         self.client = client
-        self.sim = sim
-        self.startSimulation = startSimulation
-        self.stopSimulation = stopSimulation
+        self.sim = self.client.getObject('sim')
+        self.startSimulation = self.sim.startSimulation
+        self.stopSimulation = self.sim.stopSimulation
+
+        self.stopSimulation()
+        time.sleep(2)
+        self.getRobotHandle()
+        self.getJoints()
         
     def getRobotHandle(self):
-        return self.sim.getObject(f'./{self.model}')
+        self.robot.handle = self.sim.getObject(f'./{self.robot.name}')
 
     def getJoints(self):
-        joints = list()
-        for i in range(0, self.number_joints):
+        self.robot.joints = list()
+        for i in range(0, self.robot.numberJoints):
             handle = self.sim.getObject(f'./joint{i+1}')
-            joints.append(handle)
-        return joints
+            self.robot.joints.append(handle)
 
     def getJointPosition(self):
         q = []
-        for i in range(0, self.number_joints):
-            q.append(self.sim.getJointPosition(self.joints[i]))
+        for i in range(0, self.robot.numberJoints):
+            q.append(self.sim.getJointPosition(self.robot.joints[i]))
         return q
 
-    def setJointPosition(self, pos):
-        for i in range(0, self.number_joints):
-            self.sim.setJointPosition(self.joints[i], np.float64(pos[i]))
-        
     def setJointTargetVelocity(self, vel):
         self.client.setStepping(True)
         
-        for i in range(0, self.number_joints):
-            self.sim.setJointTargetVelocity(self.joints[i], np.float64(vel[i]))
+        for i in range(0, self.robot.numberJoints):
+            self.sim.setJointTargetVelocity(self.robot.joints[i], np.float64(vel[i]))
             
         self.client.step()
         
     def setJointTargetPosition(self, pos):
         self.client.setStepping(True)
         
-        for i in range(0, self.number_joints):
-            self.sim.setJointTargetPosition(self.joints[i], np.float64(pos[i]))
+        for i in range(0, self.robot.numberJoints):
+            self.sim.setJointTargetPosition(self.robot.joints[i], np.float64(pos[i]))
                     
         self.client.step()
         
@@ -62,8 +59,8 @@ class Coppelia():
     #         self.client.step()
     #         i = i + 1
 
-    # def SetJointTargetPosition(number_joints, joints, pos):
-    #     for i in range(0, number_joints):
+    # def SetJointTargetPosition(numberJoints, joints, pos):
+    #     for i in range(0, numberJoints):
     #         self.sim.setJointTargetPosition(joints[i], np.float64(pos[i]))
 
     # def GetObjectPosition(name, relative = self.sim.handle_world):
@@ -95,8 +92,8 @@ class Coppelia():
     # def GetObjectMatrix(handle, relative = self.sim.handle_world):
     #     return self.sim.getObjectMatrix(handle, relative)
 
-    # def ApplyControl(number_joints, joints, u):
-    #     for i in range(0, number_joints):
+    # def ApplyControl(numberJoints, joints, u):
+    #     for i in range(0, numberJoints):
     #         self.sim.setJointTargetVelocity(joints[i], np.float64(u[i]))
     #     self.client.step()
 

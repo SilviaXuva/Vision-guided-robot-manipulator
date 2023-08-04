@@ -48,18 +48,18 @@ initial = Pose(
     0, 0, 1.40836875e+00, 0, 0, 0
 )
 
-targets1_initial = [
+pick_place_target_red_with_initial = [
     red[0],
     initial,
     red[1]
 ]
 
-targets2_without_initial = [
+pick_place_target_red_without_initial = [
     red[0],
     red[1]
 ]
 
-targets_initial = [
+all_pick_place_with_initial_between = [
     red[0],
     initial,
     red[1],
@@ -73,7 +73,7 @@ targets_initial = [
     blue[1]
 ]
 
-targets = [
+all_pick_place_without_initial = [
     red[0],
     red[1],
     blue[0],

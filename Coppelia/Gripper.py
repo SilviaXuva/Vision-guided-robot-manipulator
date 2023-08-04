@@ -1,8 +1,9 @@
-from ZMQ.Coppelia import Coppelia
+from Coppelia.APIFunctions import sim
 
-class Gripper_ChildScript(Coppelia):
+class Gripper_ChildScript():
     def __init__(self, gripperName = './ROBOTIQ85'):
-        super().__init__()
+        self.sim = sim
+        
         gripper = self.sim.getObject(gripperName)
         self.scriptHandle = self.sim.getScript(self.sim.scripttype_childscript, gripper)
         self.connector = self.sim.getObject('./attachPoint')

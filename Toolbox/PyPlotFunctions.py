@@ -4,14 +4,33 @@ from spatialmath import SE3
 import spatialmath.base as base
 import time
 from tkinter import messagebox
+from Model.Settings import Ts
 
-class Env(PyPlot):  
+class PyPlotEnv(PyPlot):
     def __init__(self, robot) -> None:
-        super().__init__()
         self.robot = robot
-        self.new()
+        
+        super().__init__()
+        self.startSimulation = self.new
+        self.stopSimulation = self.close
+
         self.controlled = list()
-    
+
+    def getJointPosition(self):
+        return self.robot.q
+        
+    def setJointTargetVelocity(self, vel):
+        q = self.getJointPosition()
+        q_new = q + vel*Ts
+        self.robot.q = q_new
+        self.q = self.getJointPosition()
+        self.controlled.append(self.robot.q)
+        self.step()
+        
+    def setJointTargetPosition(self, pos):
+        self.robot.q = pos
+        self.step()
+
     def new(self, title = '', fig = None):
         """ Initialize new matplotlib plot
 
@@ -22,16 +41,11 @@ class Env(PyPlot):
         limits = [-1, 1, -1, 1, 0, 1.5]
         self.launch(fig = fig, limits=limits)
         if title != '':
-            current = fig.canvas.manager.get_window_title()
-            fig.canvas.manager.set_window_title(f'{current} - {title}')
+            current = self.fig.canvas.manager.get_window_title()
+            self.fig.canvas.manager.set_window_title(f'{current} - {title}')
         self.add(self.robot)
         self.workspace = self.ax.get_figure()
         return fig
-    
-    def traj(self):
-        self.robot.q = self.robot.getJointPosition()
-        self.controlled.append(self.robot.q)
-        self.step()
         
     def pose(self, T):
         """ Plot pose
