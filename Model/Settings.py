@@ -1,7 +1,9 @@
 import numpy as np
 
-toolbox = False
-coppelia = True
+environments = [
+    # 'toolbox',
+    'coppelia'
+]
 gripper = True
 
 Ts = 0.05
@@ -45,6 +47,3 @@ class Settings():
         
         self.trans_tol = trans_tol
         self.rot_tol = rot_tol
-
-        self.toolbox = toolbox
-        self.coppelia = coppelia

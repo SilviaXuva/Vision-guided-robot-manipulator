@@ -2,12 +2,16 @@
 
 from Data.targets import all_pick_place_without_initial as targets
 from Model.LBR_iiwa import LBR_iiwa
+from Simulators.Coppelia.Vision import Vision
 import roboticstoolbox as rtb
 from spatialmath import SE3
 
 robot = LBR_iiwa()
 
 robot.startSimulation()
+
+v = Vision()
+v.run()
 
 for i, target in enumerate(targets):
     # Initial config

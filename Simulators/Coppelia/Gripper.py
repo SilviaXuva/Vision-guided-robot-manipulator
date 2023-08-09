@@ -1,4 +1,7 @@
-from Coppelia.APIFunctions import sim
+from zmqRemoteApi import RemoteAPIClient
+
+client = RemoteAPIClient()
+sim = client.getObject('sim')
 
 class Gripper_ChildScript():
     def __init__(self, gripperName = './ROBOTIQ85'):
