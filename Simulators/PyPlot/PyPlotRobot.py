@@ -1,3 +1,4 @@
+from Model.settings import Settings
 import numpy as np
 from roboticstoolbox.backends.PyPlot import PyPlot
 from spatialmath import SE3
@@ -10,8 +11,8 @@ class PyPlotRobot(PyPlot):
         self.robot = robot
         
         PyPlot.__init__(self)
-        self.startSimulation = self.new
-        self.stopSimulation = self.close
+        self.start = self.new
+        self.stop = self.close
 
         self.controlled = list()
 
@@ -20,7 +21,7 @@ class PyPlotRobot(PyPlot):
         
     def setJointTargetVelocity(self, vel):
         q = self.getJointPosition()
-        q_new = q + vel*self.robot.Ts
+        q_new = q + vel*Settings.Ts
         self.robot.q = q_new
         self.robot.q = self.getJointPosition()
         self.controlled.append(self.robot.q)

@@ -2,11 +2,9 @@ import numpy as np
 from roboticstoolbox import DHRobot, RevoluteDH
 from spatialmath.base import transl, trotz
 
-from Model.Settings import Settings
-from Model.Controller import Controller
-from Simulators import Simulators
+from Model.settings import Settings
 
-class LBR_iiwa(DHRobot, Settings, Controller, Simulators):
+class LBR_iiwa(DHRobot):
     """
     Class that models a LBR iiwa 14R 820 manipulator
 
@@ -62,9 +60,8 @@ class LBR_iiwa(DHRobot, Settings, Controller, Simulators):
         self.addconfiguration("qr", self.qr)
         self.addconfiguration("qz", self.qz)
         
-        Settings.__init__(self)
-        Controller.__init__(self)
-        Simulators.__init__(self)
+        self.numberJoints = self.n
+        self.q = Settings.q0
 
 if __name__ == "__main__":  # pragma nocover
 
