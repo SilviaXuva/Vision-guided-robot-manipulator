@@ -2,14 +2,9 @@ import numpy as np
 from roboticstoolbox import DHRobot, RevoluteDH
 from spatialmath.base import transl, trotz
 
-from Model.Settings import Settings
-from Model.Controller import Controller
+from Model.settings import Settings
 
-from Coppelia.APIFunctions import Coppelia
-from Coppelia.Gripper import Gripper_ChildScript
-from Toolbox.PyPlotFunctions import PyPlotEnv
-
-class LBR_iiwa(DHRobot, Settings, Controller):
+class LBR_iiwa(DHRobot):
     """
     Class that models a LBR iiwa 14R 820 manipulator
 
@@ -56,8 +51,8 @@ class LBR_iiwa(DHRobot, Settings, Controller):
 
         tool = transl(0, 0, tool_offset)
         
-        name = 'LBRiiwa14R820'
-        DHRobot.__init__(self, L, name=name, manufacturer="Kuka", tool=tool)
+        self.name = 'LBRiiwa14R820'
+        DHRobot.__init__(self, L, name=self.name, manufacturer="Kuka", tool=tool)
 
         self.qr = np.array([0,0,0, np.pi/2, 0,0,0])
         self.qz = np.zeros(7)
@@ -65,57 +60,8 @@ class LBR_iiwa(DHRobot, Settings, Controller):
         self.addconfiguration("qr", self.qr)
         self.addconfiguration("qz", self.qz)
         
-        Settings.__init__(self)
-        
-        self.instance_pyplot = PyPlotEnv(self) if self.toolbox else None
-        if self.coppelia:
-            self.instance_coppelia = Coppelia(self)
-            self.Gripper = Gripper_ChildScript()
-        else:
-            self.instance_coppelia = None
-
-    def startSimulation(self):
-        if self.instance_pyplot:
-            self.instance_pyplot.startSimulation()
-        if self.instance_coppelia:
-            self.instance_coppelia.startSimulation()
-
-    def stopSimulation(self):
-        if self.instance_pyplot:
-            self.instance_pyplot.stopSimulation()
-        if self.instance_coppelia:
-            self.instance_coppelia.stopSimulation()
-
-    def getJointPosition(self):
-        if self.instance_coppelia:
-            q = self.instance_coppelia.getJointPosition()
-        else:
-            if self.instance_pyplot:
-                q = self.instance_pyplot.getJointPosition()
-        return q
-
-    def setJointTargetVelocity(self, vel):
-        if self.instance_pyplot:
-            self.instance_pyplot.setJointTargetVelocity(vel)
-        if self.instance_coppelia:
-            self.instance_coppelia.setJointTargetVelocity(vel)
-        
-    def setJointTargetPosition(self, pos):
-        if self.instance_pyplot:
-            self.instance_pyplot.setJointTargetPosition(pos)
-        if self.instance_coppelia:
-            self.instance_coppelia.setJointTargetPosition(pos)
-
-    # called when an attribute is not found:
-    def __getattr__(self, name):
-        try:
-            result = self.instance_pyplot.__getattribute__(name)
-        except:
-            result = self.NoneFunction
-        return result
-    
-    def NoneFunction(*args, **kwargs):
-        pass
+        self.numberJoints = self.n
+        self.q = Settings.q0
 
 if __name__ == "__main__":  # pragma nocover
 

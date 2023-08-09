@@ -22,8 +22,8 @@ for i, target in enumerate(targets):
         target.x, target.y, target.z
     )*SE3.Rx(target.rx)*SE3.Ry(target.ry)*SE3.Rz(target.rz)
     
-    ctraj = rtb.ctraj(T0, T1, Settings.t)  # Calculate reference cartesian trajectory
-    traj = [SE3(pose) for pose in ctraj.A]  # Transform each pose into SE3
+    jtraj = rtb.jtraj(simulator.getJointPosition(), robot.ikine_LMS(T1).q, Settings.t)  # Calculate reference cartesian trajectory
+    traj = [SE3(robot.fkine(q)) for q in jtraj.q]  # Transform each pose into SE3
     
     control(simulator, T0, T1, traj) # Control
     

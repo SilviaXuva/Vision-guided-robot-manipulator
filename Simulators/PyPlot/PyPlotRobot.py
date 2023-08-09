@@ -1,18 +1,18 @@
+from Model.settings import Settings
 import numpy as np
 from roboticstoolbox.backends.PyPlot import PyPlot
 from spatialmath import SE3
 import spatialmath.base as base
 import time
 from tkinter import messagebox
-from Model.Settings import Ts
 
-class PyPlotEnv(PyPlot):
+class PyPlotRobot(PyPlot):
     def __init__(self, robot) -> None:
         self.robot = robot
         
-        super().__init__()
-        self.startSimulation = self.new
-        self.stopSimulation = self.close
+        PyPlot.__init__(self)
+        self.start = self.new
+        self.stop = self.close
 
         self.controlled = list()
 
@@ -21,9 +21,9 @@ class PyPlotEnv(PyPlot):
         
     def setJointTargetVelocity(self, vel):
         q = self.getJointPosition()
-        q_new = q + vel*Ts
+        q_new = q + vel*Settings.Ts
         self.robot.q = q_new
-        self.q = self.getJointPosition()
+        self.robot.q = self.getJointPosition()
         self.controlled.append(self.robot.q)
         self.step()
         
