@@ -1,8 +1,7 @@
+from Model.settings import Settings
 import numpy as np
 from roboticstoolbox import DHRobot, RevoluteDH
 from spatialmath.base import transl, trotz
-
-from Model.settings import Settings
 
 class LBR_iiwa(DHRobot):
     """
@@ -60,7 +59,7 @@ class LBR_iiwa(DHRobot):
         self.addconfiguration("qr", self.qr)
         self.addconfiguration("qz", self.qz)
         
-        self.numberJoints = self.n
+        self.number_joints = self.n
         self.q = Settings.q0
 
 if __name__ == "__main__":  # pragma nocover

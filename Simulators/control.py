@@ -4,12 +4,10 @@ import numpy as np
 
 Kp_cart = np.concatenate(
     [
-        np.eye(6)[:3]*Settings.Kp_trans, 
-        np.eye(6)[3:]*Settings.Kp_rot
+        np.eye(6)[:3]*Settings.Controller.Kp_trans, 
+        np.eye(6)[3:]*Settings.Controller.Kp_rot
     ]
 ) 
-# Kp_cart = np.eye(6)*17
-# Kp_cart = np.eye(6)*25
 Kp_joint = np.eye(7)*35
 
 def control(simulator, T0, T1, traj):
@@ -27,18 +25,18 @@ def control(simulator, T0, T1, traj):
     for i in range(len(traj)):
         q = simulator.getJointPosition()
         
-        if Settings.controllerType == 'cart':
+        if Settings.Controller.type == 'cart':
             T_ref = traj[i]
             x_ref = np.block([T_ref.t, T_ref.eul()])
             x_dot_ref = (x_ref - x0)/Settings.Ts
             x0 = x_ref
             q_new, q_control_dot = cartesianSpaceController(simulator, x_ref, x_dot_ref, q)
-        elif Settings.controller == 'joint':
+        elif Settings.Controller.type == 'joint':
             q0, q_control_dot = jointSpaceController(simulator, q0, x_dot_ref, q)
         
         simulator.setJointTargetVelocity(q_control_dot)
         
-        if isClose(simulator, T1, q_new, Settings.trans_tol, Settings.rot_tol):
+        if isClose(simulator, T1, q_new, Settings.Tolerance.tol_trans, Settings.Tolerance.tol_rot):
             break
         
         # if i >= len(traj) - 10:
