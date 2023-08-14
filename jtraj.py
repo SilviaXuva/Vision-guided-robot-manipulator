@@ -4,7 +4,7 @@ from Data.targets import all_pick_place_without_initial as targets
 from Model.settings import Settings
 from Model.LBR_iiwa import LBR_iiwa
 import roboticstoolbox as rtb
-from Simulators.controller import control
+from Simulators.control import control
 from Simulators.simulation import Simulator
 from spatialmath import SE3
 

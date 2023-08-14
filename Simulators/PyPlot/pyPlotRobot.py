@@ -21,7 +21,7 @@ class PyPlotRobot(PyPlot):
         
     def setJointTargetVelocity(self, vel):
         q = self.getJointPosition()
-        q_new = q + vel*Settings.Ts
+        q_new = q + np.array(vel)*Settings.Ts
         self.robot.q = q_new
         self.robot.q = self.getJointPosition()
         self.controlled.append(self.robot.q)

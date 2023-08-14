@@ -24,23 +24,23 @@ class CoppeliaRobot():
 
     def getJoints(self):
         self.robot.joints = list()
-        for i in range(0, self.robot.numberJoints):
+        for i in range(0, self.robot.number_joints):
             handle = self.sim.getObject(f'./joint{i+1}')
             self.robot.joints.append(handle)
 
     def getJointPosition(self):
         q = []
-        for i in range(0, self.robot.numberJoints):
+        for i in range(0, self.robot.number_joints):
             q.append(self.sim.getJointPosition(self.robot.joints[i]))
         return q
 
     def setJointTargetVelocity(self, vel):
-        for i in range(0, self.robot.numberJoints):
+        for i in range(0, self.robot.number_joints):
             self.sim.setJointTargetVelocity(self.robot.joints[i], np.float64(vel[i]))
         self.client.step()
         
     def setJointTargetPosition(self, pos):
-        for i in range(0, self.robot.numberJoints):
+        for i in range(0, self.robot.number_joints):
             self.sim.setJointTargetPosition(self.robot.joints[i], np.float64(pos[i]))
         self.client.step()
         
@@ -53,8 +53,8 @@ class CoppeliaRobot():
     #         self.client.step()
     #         i = i + 1
 
-    # def SetJointTargetPosition(self, numberJoints, joints, pos):
-    #     for i in range(0, numberJoints):
+    # def SetJointTargetPosition(self, number_joints, joints, pos):
+    #     for i in range(0, number_joints):
     #         self.sim.setJointTargetPosition(joints[i], np.float64(pos[i]))
 
     # def GetObjectPosition(self, name, relative = None):
@@ -92,8 +92,8 @@ class CoppeliaRobot():
     #         relative = self.sim.handle_world
     #     return self.sim.getObjectMatrix(handle, relative)
 
-    # def ApplyControl(self, numberJoints, joints, u):
-    #     for i in range(0, numberJoints):
+    # def ApplyControl(self, number_joints, joints, u):
+    #     for i in range(0, number_joints):
     #         self.sim.setJointTargetVelocity(joints[i], np.float64(u[i]))
     #     self.client.step()
 
