@@ -34,8 +34,8 @@ class Trajectory:
         q_ref = True,
         q = True,
         qlim = True,
-        save_path='',
-        block = True,
+        save = False,
+        block = False,
         loc = None,
         grid=True,
         **kwargs,
@@ -74,8 +74,9 @@ class Trajectory:
         ax.legend(labels, loc=loc)
         ax.set_xlabel("Time (s)")
         
-        if save_path != '':
-            os.makedirs(os.path.dirname(save_path), exist_ok=True)
-            fig.savefig(save_path)
+        if save:
+            path = fr'{Settings.output_path}\{self.shapePath.replace("./", "")}\Close gripper={self.closeGripper}.png'
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            fig.savefig(path)
         if block:
             plt.show()

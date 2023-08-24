@@ -19,6 +19,6 @@ for i, target in enumerate(targets):
     
     control(robot, target)
     
-    target.plot(block = True)
+    target.plot(save = True)
 
 robot.Coppelia.stop()

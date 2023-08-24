@@ -1,4 +1,6 @@
+from datetime import datetime
 import numpy as np
+import os
 
 class Controller:
     def __init__(self, type, Kp) -> None:
@@ -39,3 +41,6 @@ class Settings:
             0.017349982634186745
         ]
     )
+
+    output_path = fr'.\Output\{datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")}'
+    os.makedirs(output_path, exist_ok=True)

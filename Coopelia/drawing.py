@@ -1,3 +1,5 @@
+from settings import Settings
+
 class Drawing:
     def __init__(self, client, sim) -> None:
         self.client = client
@@ -9,7 +11,7 @@ class Drawing:
         self.currentPosition = self.sim.getObjectPosition(self.handle, self.sim.handle_world)
         self.referencePosition = self.currentPosition
         
-        f = open(r'.\Output\drawing.log', "w", encoding='utf-8')
+        f = open(fr'{Settings.output_path}\drawing.log', "w", encoding='utf-8')
         f.write(f'sim.addDrawingObjectItem({self.currentDrawing}, nil)' + '\n' + f'sim.addDrawingObjectItem({self.referenceDrawing}, nil)')
         f.close()
         
@@ -28,3 +30,5 @@ class Drawing:
     def clear(self):
         self.sim.addDrawingObjectItem(self.currentDrawing, None)
         self.sim.addDrawingObjectItem(self.referenceDrawing, None)
+        self.sim.removeDrawingObject(self.currentDrawing)
+        self.sim.removeDrawingObject(self.referenceDrawing)
