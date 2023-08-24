@@ -9,6 +9,10 @@ class Drawing:
         self.currentPosition = self.sim.getObjectPosition(self.handle, self.sim.handle_world)
         self.referencePosition = self.currentPosition
         
+        f = open(r'.\Output\drawing.log', "w", encoding='utf-8')
+        f.write(f'sim.addDrawingObjectItem({self.currentDrawing}, nil)' + '\n' + f'sim.addDrawingObjectItem({self.referenceDrawing}, nil)')
+        f.close()
+        
     def show(self, reference):
         currentLine = self.currentPosition
         self.currentPosition = self.sim.getObjectPosition(self.handle, self.sim.handle_world)
