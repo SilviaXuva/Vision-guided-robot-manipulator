@@ -20,17 +20,11 @@ class Tolerance:
             for i in range(len(tol)):
                 setattr(self, f'Kp_joint_{i}', tol[i])
 
-class Settings():
-    environments = [
-        'coppelia',
-        # 'pyplot'
-    ]
-    gripper = True
-    vision = False
-
+class Settings:
     Ts = 0.05
     T_tot = 5
     t = np.arange(0, T_tot + Ts, Ts)
+    Traj = 'joint'
     Tolerance = Tolerance('cart', [0.005, 1])
     Controller = Controller('cart', [8,6])
 
