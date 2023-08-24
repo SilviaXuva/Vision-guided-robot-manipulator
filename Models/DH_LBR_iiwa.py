@@ -1,6 +1,5 @@
 import numpy as np
 from roboticstoolbox import DHRobot, RevoluteDH
-from settings import Settings
 
 class LBR_iiwa(DHRobot):
     """Class that models a LBR iiwa 14R 820 manipulator
@@ -25,12 +24,8 @@ class LBR_iiwa(DHRobot):
     .. codeauthor:: Peter Corke
     """  # noqa
 
-    def __init__(self, q0: np.ndarray):
-        """Init LBR_iiwa custom DH model
-
-        Args:
-            q0 (np.ndarray): Initial joints positions [rad].
-        """
+    def __init__(self):
+        """Init LBR_iiwa custom DH model"""
 
         deg = np.pi/180
         mm = 1e-3
@@ -56,8 +51,6 @@ class LBR_iiwa(DHRobot):
         
         self.addconfiguration("qr", self.qr)
         self.addconfiguration("qz", self.qz)
-        
-        self.q = q0
         
         self.number_joints = self.n
         self.type = 'DH'

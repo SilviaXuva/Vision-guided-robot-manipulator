@@ -25,7 +25,8 @@ class RobotSimulator:
             self.Gripper = RobotiqGripper(self.client, self.sim)
         if vision:
             self.Vision = None
-            
+        
+        self.robot.q = self.getJointsPosition()
         self.q = list()
 
     def step(self):
@@ -43,12 +44,10 @@ class RobotSimulator:
         self.sim.stopSimulation()
         self.sim.setInt32Param(self.sim.intparam_idle_fps, 8)
 
-    def getJointsPosition(self, plot = False):
+    def getJointsPosition(self):
         q = []
         for i in range(0, self.robot.number_joints):
             q.append(self.sim.getJointPosition(self.robot.joints[i]))
-        if plot:
-            self.q.append(q)
         return q
 
     def setJointsTargetVelocity(self, vel):

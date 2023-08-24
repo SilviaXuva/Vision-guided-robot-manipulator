@@ -25,15 +25,10 @@ class LBR_iiwa(LBR):
     .. sectionauthor:: Peter Corke
     """
     
-    def __init__(self, q0: np.ndarray):
-        """Init LBR_iiwa URDF model
-
-        Args:
-            q0 (np.ndarray): Initial joints positions [rad].
-        """
+    def __init__(self):
+        """Init LBR_iiwa URDF model"""
         
         super().__init__()
-        self.q = q0
         
         self.name = 'LBRiiwa14R820'
         self.number_joints = self.n

@@ -8,7 +8,7 @@ import numpy as np
 import roboticstoolbox as rtb
 from settings import Settings
 
-robot = LBR_iiwa(Settings.q0)
+robot = LBR_iiwa()
 robot.Coppelia = RobotSimulator(robot, scene = 'robot_vel_dynamic.ttt', drawing = True, gripper = True, vision = False)
 
 robot.Coppelia.start()

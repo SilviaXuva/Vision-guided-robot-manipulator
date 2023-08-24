@@ -16,18 +16,12 @@ class Trajectory:
         if type == 'cart':
             self.ctraj = rtb.ctraj(self.T0, self.T1, Settings.t) # Calculate reference cartesian/end-effector trajectory
             self.ref = [SE3(pose) for pose in self.ctraj.A]  # Transform each pose into SE3]
-            self.q_ref = [robot.ikine_LMS(pose).q for pose in self.ctraj.A]
+            self.q_ref = [robot.ikine_LMS(pose).q for pose in self.ref]
         elif type == 'joint':
             self.jtraj = rtb.jtraj(self.q0, self.q1, Settings.t)  # Calculate reference joints trajectory
             self.ref = [SE3(robot.fkine(q)) for q in self.jtraj.q]  # Transform each joint position into SE3 through forward kinematics
             self.q_ref = [q for q in self.jtraj.q]
         self.q = list()
-        
-    def plot(self, q_ref = True, q = True):
-        if q_ref:
-            rtb.xplot(np.array(self.q_ref))
-        if q:
-            rtb.xplot(np.array(self.q))
 
     def plot(
         self,
