@@ -4,10 +4,10 @@ from Data.pose import Pose
 from Data.trajectory import Trajectory
 
 class Target(Pose, Trajectory):
-    def __init__(self, x, y, z, rx, ry, rz, gripperActuation = None, shapePath = None) -> None:
+    def __init__(self, x, y, z, rx, ry, rz, gripperActuation = None, shape_path = None) -> None:
         Pose.__init__(self, x, y, z, rx, ry, rz)
-        self.closeGripper = True if gripperActuation == 'close' else False
-        self.shapePath = shapePath.title() if isinstance(shapePath, str) else None
+        self.close_gripper = True if gripperActuation == 'close' else False
+        self.shape_path = shape_path.title() if isinstance(shape_path, str) else None
     
     def getTrajectory(self, robot, T1, type):
         Trajectory.__init__(self, robot, T1, type)

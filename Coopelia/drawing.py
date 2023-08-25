@@ -6,29 +6,29 @@ class Drawing:
         self.sim = sim
         
         self.handle = self.sim.getObject('./tip')
-        self.currentDrawing = self.sim.addDrawingObject(self.sim.drawing_lines|self.sim.drawing_cyclic, 2, 0, -1, 200, [1, 0, 0])
-        self.referenceDrawing = self.sim.addDrawingObject(self.sim.drawing_lines|self.sim.drawing_cyclic, 2, 0, -1, 200, [0, 1, 1])
-        self.currentPosition = self.sim.getObjectPosition(self.handle, self.sim.handle_world)
-        self.referencePosition = self.currentPosition
+        self.current_drawing = self.sim.addDrawingObject(self.sim.drawing_lines|self.sim.drawing_cyclic, 2, 0, -1, 200, [1, 0, 0])
+        self.reference_drawing = self.sim.addDrawingObject(self.sim.drawing_lines|self.sim.drawing_cyclic, 2, 0, -1, 200, [0, 1, 1])
+        self.current_position = self.sim.getObjectPosition(self.handle, self.sim.handle_world)
+        self.reference_position = self.current_position
         
         f = open(fr'{Settings.output_path}\drawing.log', "w", encoding='utf-8')
-        f.write(f'sim.addDrawingObjectItem({self.currentDrawing}, nil)' + '\n' + f'sim.addDrawingObjectItem({self.referenceDrawing}, nil)')
+        f.write(f'sim.addDrawingObjectItem({self.current_drawing}, nil)' + '\n' + f'sim.addDrawingObjectItem({self.reference_drawing}, nil)')
         f.close()
         
     def show(self, reference):
-        currentLine = self.currentPosition
-        self.currentPosition = self.sim.getObjectPosition(self.handle, self.sim.handle_world)
-        for pos in self.currentPosition:
-            currentLine.append(pos)
-        self.sim.addDrawingObjectItem(self.currentDrawing, currentLine)
-        referenceLine = self.referencePosition
+        current_line = self.current_position
+        self.current_position = self.sim.getObjectPosition(self.handle, self.sim.handle_world)
+        for pos in self.current_position:
+            current_line.append(pos)
+        self.sim.addDrawingObjectItem(self.current_drawing, current_line)
+        reference_line = self.reference_position
         for pos in reference:
-            referenceLine.append(pos)
-        self.referencePosition = reference
-        self.sim.addDrawingObjectItem(self.referenceDrawing, referenceLine)
+            reference_line.append(pos)
+        self.reference_position = reference
+        self.sim.addDrawingObjectItem(self.reference_drawing, reference_line)
         
     def clear(self):
-        self.sim.addDrawingObjectItem(self.currentDrawing, None)
-        self.sim.addDrawingObjectItem(self.referenceDrawing, None)
-        self.sim.removeDrawingObject(self.currentDrawing)
-        self.sim.removeDrawingObject(self.referenceDrawing)
+        self.sim.addDrawingObjectItem(self.current_drawing, None)
+        self.sim.addDrawingObjectItem(self.reference_drawing, None)
+        self.sim.removeDrawingObject(self.current_drawing)
+        self.sim.removeDrawingObject(self.reference_drawing)

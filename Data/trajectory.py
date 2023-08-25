@@ -69,7 +69,7 @@ class Trajectory:
         ax.set_xlabel("Time (s)")
         
         if save:
-            path = fr'{Settings.output_path}\{self.shapePath.replace("./", "")}\Close gripper={self.closeGripper}.png'
+            path = fr'{Settings.output_path}\{self.shape_path.replace("./", "")}\Close gripper={self.close_gripper}.png'
             os.makedirs(os.path.dirname(path), exist_ok=True)
             fig.savefig(path)
         if block:

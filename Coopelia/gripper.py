@@ -7,27 +7,27 @@ class RobotiqGripper:
         self.j1 = self.sim.getObject('./active1')
         self.j2 = self.sim.getObject('./active2')
         
-        self.ikEnv = self.simIK.createEnvironment()
-        simBase = self.sim.getObject('./ROBOTIQ85')
+        self.ik_env = self.simIK.createEnvironment()
+        sim_base = self.sim.getObject('./ROBOTIQ85')
         
-        self.ikGroup1 = self.simIK.createIkGroup(self.ikEnv)
-        simTip1 = self.sim.getObject('./LclosureDummyA')
-        simTarget1 = self.sim.getObject('./LclosureDummyB')
-        self.simIK.addIkElementFromScene(self.ikEnv, self.ikGroup1, simBase, simTip1, simTarget1, self.simIK.constraint_x + self.simIK.constraint_z)
+        self.ik_group1 = self.simIK.createIkGroup(self.ik_env)
+        sim_tip1 = self.sim.getObject('./LclosureDummyA')
+        sim_target1 = self.sim.getObject('./LclosureDummyB')
+        self.simIK.addIkElementFromScene(self.ik_env, self.ik_group1, sim_base, sim_tip1, sim_target1, self.simIK.constraint_x + self.simIK.constraint_z)
         
-        self.ikGroup2 = self.simIK.createIkGroup(self.ikEnv)
-        simTip2 = self.sim.getObject('./RclosureDummyA')
-        simTarget2 = self.sim.getObject('./RclosureDummyB')
-        self.simIK.addIkElementFromScene(self.ikEnv, self.ikGroup2, simBase, simTip2, simTarget2, self.simIK.constraint_x + self.simIK.constraint_z)
+        self.ik_group2 = self.simIK.createIkGroup(self.ik_env)
+        sim_tip2 = self.sim.getObject('./RclosureDummyA')
+        sim_target2 = self.sim.getObject('./RclosureDummyB')
+        self.simIK.addIkElementFromScene(self.ik_env, self.ik_group2, sim_base, sim_tip2, sim_target2, self.simIK.constraint_x + self.simIK.constraint_z)
 
         self.connector = self.sim.getObject('./attachPoint')
-        self.objectSensor = self.sim.getObject('./attachProxSensor')
+        self.object_sensor = self.sim.getObject('./attachProxSensor')
     
-    def setActuationType(self, close, shapePath = './Cuboid'):
+    def setActuationType(self, close, shape_path = './Cuboid'):
         self.close = close
-        shape = self.sim.getObject(shapePath)
+        shape = self.sim.getObject(shape_path)
         if self.close:
-            if self.sim.checkProximitySensor(self.objectSensor, shape)[0] == 1:
+            if self.sim.checkProximitySensor(self.object_sensor, shape)[0] == 1:
                 self.sim.setObjectParent(shape, self.connector, True)
         else:
             self.sim.setObjectParent(shape, -1, True)
@@ -50,30 +50,30 @@ class RobotiqGripper:
                 self.sim.setJointTargetVelocity(self.j1, 0.02)
                 self.sim.setJointTargetVelocity(self.j2, 0.04)                
         
-        self.simIK.applyIkEnvironmentToScene(self.ikEnv, self.ikGroup1)
-        self.simIK.applyIkEnvironmentToScene(self.ikEnv, self.ikGroup2)
+        self.simIK.applyIkEnvironmentToScene(self.ik_env, self.ik_group1)
+        self.simIK.applyIkEnvironmentToScene(self.ik_env, self.ik_group2)
             
 class GripperChildScript:
-    def __init__(self, client, sim, gripperName = './ROBOTIQ85'):
+    def __init__(self, client, sim, gripper_name = './ROBOTIQ85'):
         self.client = client
         self.sim = sim
         
-        handle = self.sim.getObject(gripperName)
-        self.scriptHandle = self.sim.getScript(self.sim.scripttype_childscript, handle)
+        handle = self.sim.getObject(gripper_name)
+        self.script_handle = self.sim.getScript(self.sim.scripttype_childscript, handle)
         self.connector = self.sim.getObject('./attachPoint')
-        self.objectSensor = self.sim.getObject('./attachProxSensor')
+        self.object_sensor = self.sim.getObject('./attachProxSensor')
     
     def actuation(self, close):
-        self.sim.callScriptFunction('Actuation', self.scriptHandle, close)
+        self.sim.callScriptFunction('Actuation', self.script_handle, close)
         
     def open(self):
         self.sim.setObjectParent(self.shape, -1, True)
         self.actuation(False)
         self.client.step()
         
-    def close(self, shapeName = './Cuboid'):
+    def close(self, shape_name = './Cuboid'):
         self.actuation(True)
-        self.shape = self.sim.getObject(shapeName)
-        if self.sim.checkProximitySensor(self.objectSensor,self.shape)[0] == 1:
+        self.shape = self.sim.getObject(shape_name)
+        if self.sim.checkProximitySensor(self.object_sensor,self.shape)[0] == 1:
             self.sim.setObjectParent(self.shape, self.connector, True)
         self.client.step()

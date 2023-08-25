@@ -109,11 +109,12 @@ def control(robot, target):
     
     if hasattr(robot.Coppelia, 'Gripper'):
         try:
-            robot.Coppelia.Gripper.setActuationType(target.closeGripper, shapePath = target.shapePath)
-            startTime = robot.Coppelia.sim.getSimulationTime()
-            while robot.Coppelia.sim.getSimulationTime() - startTime < 2:
+            robot.Coppelia.Gripper.setActuationType(target.close_gripper, shape_path = target.shape_path)
+            start_time = robot.Coppelia.sim.getSimulationTime()
+            while robot.Coppelia.sim.getSimulationTime() - start_time < 2:
                 robot.Coppelia.setJointsTargetVelocity([0,0,0,0,0,0,0]) 
                 robot.Coppelia.Gripper.actuation()
                 robot.Coppelia.step()
-        except:
+        except Exception as e:
+            print(e)
             pass
