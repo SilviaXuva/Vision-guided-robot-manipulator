@@ -76,7 +76,7 @@ class PathPlanning:
         ax.legend(labels, loc=loc)
         ax.set_xlabel("Time (s)")
         
-        path = fr'{Settings.output_path}\{self.shape_path.replace("./", "")}\Close gripper={self.close_gripper}'
+        path = fr'{Settings.execution_path}\{self.shape_path.replace("./", "")}\Close gripper={self.close_gripper}\{Settings.start_time}'
         os.makedirs(path, exist_ok=True)
         if save:
             fig.savefig(fr'{path}\Comparison.png')

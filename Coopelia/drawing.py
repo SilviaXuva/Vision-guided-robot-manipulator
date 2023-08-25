@@ -1,3 +1,4 @@
+import os
 from settings import Settings
 
 class Drawing:
@@ -10,7 +11,7 @@ class Drawing:
         self.reference_drawing = self.sim.addDrawingObject(self.sim.drawing_lines|self.sim.drawing_cyclic, 2, 0, -1, 200, [0, 1, 1])
         self.current_position = self.sim.getObjectPosition(self.handle, self.sim.handle_world)
         self.reference_position = self.current_position
-        
+
         f = open(fr'{Settings.output_path}\drawing.log', "w", encoding='utf-8')
         f.write(f'sim.addDrawingObjectItem({self.current_drawing}, nil)' + '\n' + f'sim.addDrawingObjectItem({self.reference_drawing}, nil)')
         f.close()
