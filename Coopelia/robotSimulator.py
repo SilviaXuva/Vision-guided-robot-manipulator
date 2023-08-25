@@ -36,7 +36,6 @@ class RobotSimulator:
         self.sim.setInt32Param(self.sim.intparam_idle_fps, 0)
         self.client.setStepping(True)
         self.sim.startSimulation()
-        self.client.step()
 
     def stop(self):
         if hasattr(self, 'Drawing'):

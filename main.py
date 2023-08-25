@@ -15,7 +15,7 @@ robot.Coppelia.start()
 
 for i, target in enumerate(targets):
     
-    target.getTrajectory(robot, target.T, Settings.Traj)
+    target.pathPlanning(robot, target.T, Settings.Traj)
     
     control(robot, target)
     

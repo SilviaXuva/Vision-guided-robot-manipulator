@@ -1,9 +1,21 @@
 import numpy as np
 from roboticstoolbox import DHRobot
 
+class cart:
+    def __init__(self, x, xd, xdd) -> None:
+        self.x = x
+        self.xd = xd
+        self.xdd = xdd
+
+class joint:
+    def __init__(self, q, qd, qdd) -> None:
+        self.q = q
+        self.qd = qd
+        self.qdd = qdd
+
 def quinticEndEffectorTraj(T0, T1, t):
     x0 = np.block([T0.t, T0.eul()])
-    xf = np.block([T1.t, T1.eul()])
+    x1 = np.block([T1.t, T1.eul()])
         
     # Matrix T
     T = np.array([
@@ -25,7 +37,7 @@ def quinticEndEffectorTraj(T0, T1, t):
             [0],
             [0],
         # ---Final---
-            [xf[i]],
+            [x1[i]],
             [0],
             [0]
         ])
@@ -38,12 +50,9 @@ def quinticEndEffectorTraj(T0, T1, t):
     xd  = tt @ np.array([0*C[0], 1*C[1], 2*C[2], 3*C[3],  4*C[4],  5*C[5]])
     xdd = tt @ np.array([0*C[0], 0*C[1], 2*C[2], 6*C[3], 12*C[4], 20*C[5]])
 
-    return x, xd, xdd
+    return cart(x, xd, xdd)
 
-def quinticJointTraj(number_joints, T0, T1, t, ik = DHRobot.ikine_LMS, **kwargs):
-    q0 = ik(T0, **kwargs).q
-    qf = ik(T1, **kwargs).q
-        
+def quinticJointTraj(q0, q1, t):
     # Matrix T
     T = np.array([
     # ---Initial---
@@ -57,14 +66,14 @@ def quinticJointTraj(number_joints, T0, T1, t, ik = DHRobot.ikine_LMS, **kwargs)
     ])
     # Matrix of coefficients
     C = np.zeros(shape=[6, 0])
-    for i in range(number_joints):
+    for i in range(len(q0)):
         Q = np.array([
         # ---Initial---
             [q0[i]],
             [0],
             [0],
         # ---Final---
-            [qf[i]],
+            [q1[i]],
             [0],
             [0]
         ])
@@ -77,4 +86,4 @@ def quinticJointTraj(number_joints, T0, T1, t, ik = DHRobot.ikine_LMS, **kwargs)
     qd  = tt @ np.array([0*C[0], 1*C[1], 2*C[2], 3*C[3],  4*C[4],  5*C[5]])
     qdd = tt @ np.array([0*C[0], 0*C[1], 2*C[2], 6*C[3], 12*C[4], 20*C[5]])
 
-    return q, qd, qdd
+    return joint(q, qd, qdd)

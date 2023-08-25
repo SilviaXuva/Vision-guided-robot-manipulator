@@ -1,16 +1,16 @@
 from spatialmath import SE3
 import numpy as np
 from Data.pose import Pose
-from Data.trajectory import Trajectory
+from Data.pathPlanning import PathPlanning
 
-class Target(Pose, Trajectory):
+class Target(Pose, PathPlanning):
     def __init__(self, x, y, z, rx, ry, rz, gripperActuation = None, shape_path = None) -> None:
         Pose.__init__(self, x, y, z, rx, ry, rz)
         self.close_gripper = True if gripperActuation == 'close' else False
         self.shape_path = shape_path.title() if isinstance(shape_path, str) else None
     
-    def getTrajectory(self, robot, T1, type):
-        Trajectory.__init__(self, robot, T1, type)
+    def pathPlanning(self, robot, T1, type):
+        PathPlanning.__init__(self, robot, T1, type)
 
 red = [
     Target(

@@ -26,7 +26,7 @@ class Settings:
     Ts = 0.05
     T_tot = 5
     t = np.arange(0, T_tot + Ts, Ts)
-    Traj = 'joint'
+    Traj = ['joint', 'custom']
     Tolerance = Tolerance('cart', [0.005, 1])
     Controller = Controller('cart', [8,6])
 
