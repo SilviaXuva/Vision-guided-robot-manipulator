@@ -9,16 +9,16 @@ import roboticstoolbox as rtb
 from settings import Settings
 
 robot = LBR_iiwa()
-robot.Coppelia = RobotSimulator(robot, drawing = True, gripper = True, vision = False)
+robot.Coppelia = RobotSimulator(robot, drawing = True, gripper = False, vision = False)
 
 robot.Coppelia.start()
 
 for i, target in enumerate(targets):
     
-    target.pathPlanning(robot, target.T, Settings.Traj)
+    target.pathPlanning(robot, target.T, Settings.Trajectory)
     
     control(robot, target)
     
-    target.plot(save = True)
+    target.plot(save=True)
 
 robot.Coppelia.stop()

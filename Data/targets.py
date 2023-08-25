@@ -9,8 +9,8 @@ class Target(Pose, PathPlanning):
         self.close_gripper = True if gripperActuation == 'close' else False
         self.shape_path = shape_path.title() if isinstance(shape_path, str) else None
     
-    def pathPlanning(self, robot, T1, type):
-        PathPlanning.__init__(self, robot, T1, type)
+    def pathPlanning(self, robot, T1, trajectory):
+        PathPlanning.__init__(self, robot, T1, trajectory)
 
 red = [
     Target(

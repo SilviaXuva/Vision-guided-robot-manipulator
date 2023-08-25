@@ -5,13 +5,14 @@ from settings import Settings
 control_type = Settings.Controller.type
 Ts = Settings.Ts
 
-Kp_cart = np.concatenate(
-    [
-        np.eye(6)[:3]*Settings.Controller.Kp_trans, 
-        np.eye(6)[3:]*Settings.Controller.Kp_rot
-    ]
-) 
-Kp_joint = np.eye(7)*35
+if Settings.Controller.type is not None:
+    Kp_cart = np.concatenate(
+        [
+            np.eye(6)[:3]*Settings.Controller.Kp_trans, 
+            np.eye(6)[3:]*Settings.Controller.Kp_rot
+        ]
+    ) 
+    Kp_joint = np.eye(7)*35
 
 tol_trans = Settings.Tolerance.tol_trans
 rot_trans = Settings.Tolerance.tol_rot
@@ -51,16 +52,16 @@ def cartesianSpaceController(robot, x_ref, x_dot_ref, q):
     control_signal = Kp_cart@e
     control_signal = control_signal + x_dot_ref
     q_control_dot = inverseDifferentialKinematics(robot, q, control_signal)
-    q_new = q + q_control_dot*Ts
-    return q_new, q_control_dot
+    q_control_new = q + q_control_dot*Ts
+    return q_control_new, q_control_dot
 
 def jointSpaceController(q_dot_ref, x_dot_ref, q):
     q_dot_dot = inverseDifferentialKinematics(q_dot_ref, x_dot_ref)
-    q_dot_new = q_dot_ref + q_dot_dot*Ts #Euler integration
-    q_err = q_dot_new - q
+    q_control_dot_new = q_dot_ref + q_dot_dot*Ts #Euler integration
+    q_err = q_control_dot_new - q
     control_signal = Kp_joint@q_err
     q_control_dot = control_signal + q_dot_dot
-    return q_dot_new, q_control_dot
+    return q_control_dot_new, q_control_dot
 
 # def InverseDifferentialKinematicsAug(q, x_dot, obs, k0):
 #     # k0 = 0 # Redundancy gain - 0 for standard (non collision-free) motion planning
@@ -86,20 +87,25 @@ def control(robot, target):
             robot.Coppelia.Drawing.show([target.ref[i].t[0], target.ref[i].t[1], target.ref[i].t[2]])
 
         q = robot.Coppelia.getJointsPosition()
+    
+        T_ref = target.ref[i]
+        x_ref = np.block([T_ref.t, T_ref.eul()])
+        x_dot_ref = (x_ref - x0)/Ts
+        x0 = x_ref
         
         if control_type == 'cart':
-            T_ref = target.ref[i]
-            x_ref = np.block([T_ref.t, T_ref.eul()])
-            x_dot_ref = (x_ref - x0)/Ts
-            x0 = x_ref
-            q_new, q_control_dot = cartesianSpaceController(robot, x_ref, x_dot_ref, q)
+            q_control_new, q_control_dot = cartesianSpaceController(robot, x_ref, x_dot_ref, q)
         elif control_type == 'joint':
             q0, q_control_dot = jointSpaceController(robot, q0, x_dot_ref, q)
+        elif control_type == None:
+            q_control_dot = inverseDifferentialKinematics(robot, q, x_dot_ref)
         
-        target.q.append(q_new)
+        q_new = robot.Coppelia.getJointsPosition()
         
         robot.Coppelia.setJointsTargetVelocity(q_control_dot)
         robot.Coppelia.step()
+        
+        target.q.append(q_new)
         
         if isClose(robot, target.T, q_new):
             break
