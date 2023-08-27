@@ -9,8 +9,3 @@ Scenes/
 Output/
 commits.log
 comparison.py
-
-Lua/
-
-ProcessVision/
-**/vision.py

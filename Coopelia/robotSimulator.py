@@ -1,7 +1,8 @@
 import numpy as np
 import os
-from Coopelia.gripper import GripperChildScript, RobotiqGripper
 from Coopelia.drawing import Drawing
+from Coopelia.gripper import GripperChildScript, RobotiqGripper
+from Coopelia.vision import VisionNonThreaded, VisionThreaded
 from zmqRemoteApi import RemoteAPIClient
 
 class RobotSimulator:
@@ -24,7 +25,7 @@ class RobotSimulator:
         if gripper:
             self.Gripper = RobotiqGripper(self.client, self.sim)
         if vision:
-            self.Vision = None
+            self.Vision = VisionNonThreaded(self.client, self.sim)
         
         self.robot.q = self.getJointsPosition()
         self.q = list()

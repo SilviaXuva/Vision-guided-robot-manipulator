@@ -83,6 +83,9 @@ def control(robot, target):
         if hasattr(robot.Coppelia, 'Drawing'):
             robot.Coppelia.Drawing.show([target.ref[i].t[0], target.ref[i].t[1], target.ref[i].t[2]])
 
+        if hasattr(robot.Coppelia, 'Vision'):
+            robot.Coppelia.Vision.GetImg()
+
         q = robot.Coppelia.getJointsPosition()
         target.q.append(q)
         if isClose(robot, target.T, q):
