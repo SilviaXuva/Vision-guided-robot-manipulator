@@ -9,7 +9,7 @@ import roboticstoolbox as rtb
 from settings import Settings
 
 robot = LBR_iiwa()
-robot.Coppelia = RobotSimulator(robot, drawing = True, gripper = False, vision = True)
+robot.Coppelia = RobotSimulator(robot, drawing = True, gripper = True, vision = True)
 
 robot.Coppelia.start()
 
@@ -22,9 +22,6 @@ for i, target in enumerate(targets):
     for i in range(len(target.ref)):
         if hasattr(robot.Coppelia, 'Drawing'):
             robot.Coppelia.Drawing.show([target.ref[i].t[0], target.ref[i].t[1], target.ref[i].t[2]])
-
-        if hasattr(robot.Coppelia, 'Vision'):
-            robot.Coppelia.Vision.GetImg()
 
         q = robot.Coppelia.getJointsPosition()
         target.q.append(q)

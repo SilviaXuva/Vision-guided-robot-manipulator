@@ -31,6 +31,8 @@ class RobotSimulator:
         self.q = list()
 
     def step(self):
+        if hasattr(self, 'Vision'):
+            self.Vision.GetImg()
         self.client.step()
     
     def start(self):
