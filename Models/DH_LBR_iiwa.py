@@ -1,5 +1,6 @@
 import numpy as np
 from roboticstoolbox import DHRobot, RevoluteDH
+from Data.targets import Target
 
 class LBR_iiwa(DHRobot):
     """Class that models a LBR iiwa 14R 820 manipulator
@@ -47,8 +48,26 @@ class LBR_iiwa(DHRobot):
         DHRobot.__init__(self, L, name=self.name, manufacturer="Kuka")
 
         self.qr = np.array([0,0,0, 90*deg, 0,0,0])
-        self.qz = np.zeros(7)
+        Tr = self.fkine(self.qr)
+        self.Tr = Target(Tr.t[0], Tr.t[1], Tr.t[2], Tr.rpy(order='xyz')[0], Tr.rpy(order='xyz')[1], Tr.rpy(order='xyz')[2], None, None)
+        self.qz = np.array(
+            [
+                -0.01647629216313362, 
+                0.037338417023420334, 
+                0.0009847808396443725, 
+                0.07846628129482269, 
+                -0.0013139393413439393, 
+                0.04261644929647446, 
+                0.017349982634186745
+            ]
+        )
+        Tz = self.fkine(self.qz)
+        self.Tz = Target(Tz.t[0], Tz.t[1], Tz.t[2], Tz.rpy(order='xyz')[0], Tz.rpy(order='xyz')[1], Tz.rpy(order='xyz')[2], None, None)
         
+        self.q_test = np.array([0,0,0, 90*deg, 0, -90*deg,0])
+        Ttest = self.fkine(self.q_test)
+        self.Ttest = Target(Ttest.t[0], Ttest.t[1], Ttest.t[2], Ttest.rpy(order='xyz')[0], Ttest.rpy(order='xyz')[1], Ttest.rpy(order='xyz')[2], None, None)
+
         self.addconfiguration("qr", self.qr)
         self.addconfiguration("qz", self.qz)
         

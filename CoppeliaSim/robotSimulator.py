@@ -1,12 +1,12 @@
 import numpy as np
 import os
-from Coopelia.drawing import Drawing
-from Coopelia.gripper import GripperChildScript, RobotiqGripper
-from Coopelia.vision import VisionNonThreaded, VisionThreaded
+from CoppeliaSim.drawing import Drawing
+from CoppeliaSim.gripper import GripperChildScript, RobotiqGripper
+from CoppeliaSim.vision import VisionNonThreaded, VisionThreaded
 from zmqRemoteApi import RemoteAPIClient
 
 class RobotSimulator:
-    def __init__(self, robot, scene = 'simulation_vel_camera_without_childscript.ttt', drawing = False, gripper = False, vision = False) -> None:
+    def __init__(self, robot, scene = 'main_scene.ttt', drawing = False, gripper = False, vision = False) -> None:
         self.robot = robot
         
         self.client = RemoteAPIClient()
@@ -16,7 +16,7 @@ class RobotSimulator:
         try:
             self.getRobotHandle()
         except:
-            self.sim.loadScene(fr"{os.path.abspath(os.curdir)}\Scenes\{scene}")
+            self.sim.loadScene(fr'C:\Users\silvi\Documents\UFSCar\TCC\Python\My-repositories\Files\Scenes\{scene}')
         self.getJoints()
         self.lockJoints()
         
@@ -32,13 +32,23 @@ class RobotSimulator:
 
     def step(self):
         if hasattr(self, 'Vision'):
-            self.Vision.GetImg()
+            try:
+                self.Vision.getImg()
+                self.Vision.preProcessing()
+                self.Vision.detectAruco()
+                self.Vision.drawAruco()
+                self.Vision.drawArucoPose()
+                self.Vision.estimateArucoPose()
+                self.Vision.showImg()
+            except Exception as e:
+                print(e)
         self.client.step()
     
     def start(self):
         self.sim.setInt32Param(self.sim.intparam_idle_fps, 0)
         self.client.setStepping(True)
         self.sim.startSimulation()
+        self.client.step()
 
     def stop(self):
         if hasattr(self, 'Drawing'):
@@ -46,25 +56,25 @@ class RobotSimulator:
         self.sim.stopSimulation()
         self.sim.setInt32Param(self.sim.intparam_idle_fps, 8)
 
-    def getJointsPosition(self):
-        q = []
-        for i in range(0, self.robot.number_joints):
-            q.append(self.sim.getJointPosition(self.robot.joints[i]))
-        return q
-
-    def setJointsTargetVelocity(self, vel):
-        for i in range(0, self.robot.number_joints):
-            self.sim.setJointTargetVelocity(self.robot.joints[i], np.float64(vel[i]))
-
     def getRobotHandle(self):
         self.robot.handle = self.sim.getObject(f'./{self.robot.name}')
 
     def getJoints(self):
         self.robot.joints = list()
         for i in range(0, self.robot.number_joints):
-            handle = self.sim.getObject(f'./joint{i+1}')
+            handle = self.sim.getObject(f'./joint{i}')
             self.robot.joints.append(handle)
             
     def lockJoints(self):
-        for i in range(0, self.robot.number_joints):
-            self.sim.setObjectInt32Param(self.robot.joints[i], self.sim.jointintparam_velocity_lock, 1)
+        for joint in self.robot.joints:
+            self.sim.setObjectInt32Param(joint, self.sim.jointintparam_velocity_lock, 1)
+
+    def getJointsPosition(self):
+        q = []
+        for joint in self.robot.joints:
+            q.append(self.sim.getJointPosition(joint))
+        return q
+
+    def setJointsTargetVelocity(self, vel):
+        for i, joint in enumerate(self.robot.joints):
+            self.sim.setJointTargetVelocity(joint, np.float64(vel[i]))

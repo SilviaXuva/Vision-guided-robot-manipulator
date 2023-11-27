@@ -14,6 +14,8 @@ class PathPlanning:
         self.T0 = robot.fkine(self.q0)
         self.T1 = T1
         self.q1 = robot.ikine_LMS(self.T1).q
+
+        self.q_ref = list()
         if trajectory.type == 'cart':
             if trajectory.source == 'rtb':
                 self.ctraj = rtb.ctraj(self.T0, self.T1, Settings.t) # Calculate reference cartesian/end-effector trajectory
@@ -21,7 +23,9 @@ class PathPlanning:
             elif trajectory.source == 'custom':
                 self.ctraj = quinticEndEffectorTraj(self.T0, self.T1, Settings.t) # Calculate reference cartesian/end-effector trajectory
                 self.ref = [SE3.Trans(x[:3])*SE3.Eul(x[3:]) for x in self.ctraj.x]  # Transform each pose into SE3
-            self.q_ref = [robot.ikine_LMS(pose).q for pose in self.ref]
+            for pose in self.ref:
+                robot.Coppelia.step()
+                self.q_ref.append(robot.ikine_LMS(pose).q)
         elif trajectory.type == 'joint':
             if trajectory.source == 'rtb':
                 self.jtraj = rtb.jtraj(self.q0, self.q1, Settings.t)  # Calculate reference joints trajectory
@@ -29,7 +33,9 @@ class PathPlanning:
             if trajectory.source == 'custom':
                 self.jtraj = quinticJointTraj(self.q0, self.q1, Settings.t)  # Calculate reference joints trajectory
                 self.ref = [SE3(robot.fkine(q)) for q in self.jtraj.q]  # Transform each joint position into SE3 through forward kinematics
-            self.q_ref = [q for q in self.jtraj.q]
+            for q in self.jtraj.q:
+                robot.Coppelia.step()
+                self.q_ref.append(q)
         self.q = list()
         self.q_lim = robot.qlim
 
