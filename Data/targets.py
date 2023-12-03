@@ -78,7 +78,7 @@ bins = {
         -0.500, 0.600, 0.5, -np.pi/2, 0, 0, 'open', './green'
     ),
     "blue": Target(
-        -0.500, 0, 0.5, -np.pi, 0, np.pi/2, 'open', './blue'
+        -0.500, 0, 0.5, -np.pi/2, 0, np.pi/2, 'open', './blue'
     )
 }
 
