@@ -16,6 +16,7 @@ class RobotSimulator:
         try:
             self.getRobotHandle()
         except:
+            print(f'Loading scene {scene}')
             self.sim.loadScene(fr'C:\Users\silvi\Documents\UFSCar\TCC\Python\My-repositories\Files\Scenes\{scene}')
         self.getJoints()
         self.lockJoints()
@@ -48,6 +49,7 @@ class RobotSimulator:
         self.sim.setInt32Param(self.sim.intparam_idle_fps, 0)
         self.client.setStepping(True)
         self.sim.startSimulation()
+        print('Simulation started')
         self.client.step()
 
     def stop(self):
@@ -55,6 +57,7 @@ class RobotSimulator:
             self.Drawing.clear()
         self.sim.stopSimulation()
         self.sim.setInt32Param(self.sim.intparam_idle_fps, 8)
+        print('Simulation stopped')
 
     def getRobotHandle(self):
         self.robot.handle = self.sim.getObject(f'./{self.robot.name}')

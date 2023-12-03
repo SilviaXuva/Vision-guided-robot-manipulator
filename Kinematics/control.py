@@ -45,20 +45,20 @@ def cartesianSpaceController(robot, x_ref, x_dot_ref, q):
     pose = robot.fkine(q)
     x = np.block([pose.t, pose.eul()])
 
-    e = x_ref - x
-    control_signal = Kp_cart@e
+    x_err = x_ref - x
+    control_signal = Kp_cart@x_err
     control_signal = control_signal + x_dot_ref
-    q_control_dot = inverseDifferentialKinematics(robot, q, control_signal)
-    q_control_new = q + q_control_dot*Ts
-    return q_control_new, q_control_dot
+    q_dot_control = inverseDifferentialKinematics(robot, q, control_signal)
+    q_control = q + q_dot_control*Ts
+    return q_control, q_dot_control
 
-# def jointSpaceController(q_dot_ref, x_dot_ref, q):
-#     q_dot_dot = inverseDifferentialKinematics(q_dot_ref, x_dot_ref)
-#     q_control_dot_new = q_dot_ref + q_dot_dot*Ts #Euler integration
-#     q_err = q_control_dot_new - q
-#     control_signal = Kp_joint@q_err
-#     q_control_dot = control_signal + q_dot_dot
-#     return q_control_dot_new, q_control_dot
+def jointSpaceController(robot, q_ref, x_dot_ref, q):
+    q_dot_dot_ref = inverseDifferentialKinematics(robot, q_ref, x_dot_ref)
+
+    q_err = q_ref - q
+    q_dot_control = control_signal = Kp_joint@q_err + q_dot_dot_ref
+    q_control = q + q_dot_control*Ts
+    return q_control, q_dot_control
 
 # def InverseDifferentialKinematicsAug(q, x_dot, obs, k0):
 #     # k0 = 0 # Redundancy gain - 0 for standard (non collision-free) motion planning
@@ -97,14 +97,14 @@ def control(robot, target):
         x0 = x_ref
         
         if control_type == 'cart':
-            q_control_new, q_control_dot = cartesianSpaceController(robot, x_ref, x_dot_ref, q)
+            q_control, q_dot_control = cartesianSpaceController(robot, x_ref, x_dot_ref, q)
         elif control_type == 'joint':
-            # q0, q_control_dot = jointSpaceController(robot, q0, x_dot_ref, q)
+            # q0, q_dot_control = jointSpaceController(robot, q0, x_dot_ref, q)
             pass
         elif control_type is None:
-            q_control_dot = inverseDifferentialKinematics(robot, q, x_dot_ref)
+            q_dot_control = inverseDifferentialKinematics(robot, q, x_dot_ref)
 
-        robot.Coppelia.setJointsTargetVelocity(q_control_dot)
+        robot.Coppelia.setJointsTargetVelocity(q_dot_control)
         robot.Coppelia.step()
 
         # if i >= len(traj) - 10:

@@ -1,5 +1,27 @@
+# import matplotlib.pyplot as plt
+# import os
+# import pandas as pd
 import numpy as np
-from roboticstoolbox import DHRobot
+import roboticstoolbox as rtb
+from spatialmath import SE3
+from settings import Settings
+
+def TrajectoryPlanning(robot, q0, T1, trajectory):
+    if trajectory.type == 'cart':
+        if trajectory.source == 'rtb':
+            ctraj = rtb.ctraj(robot.fkine(q0), T1, Settings.t) # Calculate reference cartesian/end-effector trajectory
+            ctraj = [SE3(pose) for pose in ctraj.A]  # Transform each pose into SE3
+        elif trajectory.source == 'custom':
+            ctraj = quinticEndEffectorTraj(robot.fkine(q0), T1, Settings.t) # Calculate reference cartesian/end-effector trajectory
+            ctraj = [SE3.Trans(x[:3])*SE3.Eul(x[3:]) for x in ctraj.x]  # Transform each pose into SE3
+        return ctraj
+    elif trajectory.type == 'joint':
+        if trajectory.source == 'rtb':
+            jtraj = rtb.jtraj(q0, robot.ikine_LMS(T1).q, Settings.t)  # Calculate reference joints trajectory
+        elif trajectory.source == 'custom':
+            jtraj = quinticJointTraj(q0, robot.ikine_LMS(T1).q, Settings.t)  # Calculate reference joints trajectory
+        jtraj = [SE3(robot.fkine(q)) for q in jtraj.q]  # Transform each joint position into SE3 through forward kinematics
+        return jtraj
 
 class cart:
     def __init__(self, x, xd, xdd) -> None:

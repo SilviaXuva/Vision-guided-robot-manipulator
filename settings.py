@@ -70,14 +70,16 @@ class Aruco:
 
 class Settings:
     Ts = 0.05
-    T_tot = 5
+    T_tot = 10
     t = np.arange(0, T_tot + Ts, Ts)
     
     Trajectory = Trajectory('cart', 'rtb')
     # Controller = Controller(None)
-    Controller = Controller('cart', [8,6])
-    # Controller = Controller('joint', 15)
+    # Controller = Controller('cart', [8,6])
+    Controller = Controller('joint', [1,1,1,1,1,1,1])
     Tolerance = Tolerance('cart', [0.005, 1])
+
+    plot = True
     
     q0 = np.array(
         [

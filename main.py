@@ -38,14 +38,14 @@ while True:
                     x0 = x_ref
                     
                     if Settings.Controller.type == 'cart':
-                        q_control_new, q_control_dot = cartesianSpaceController(robot, x_ref, x_dot_ref, q)
+                        q_control, q_dot_control = cartesianSpaceController(robot, x_ref, x_dot_ref, q)
                     elif Settings.Controller.type == 'joint':
-                        # q0, q_control_dot = jointSpaceController(robot, q0, x_dot_ref, q)
+                        # q0, q_dot_control = jointSpaceController(robot, q0, x_dot_ref, q)
                         pass
                     elif Settings.Controller.type is None:
-                        q_control_dot = inverseDifferentialKinematics(robot, q, x_dot_ref)
+                        q_dot_control = inverseDifferentialKinematics(robot, q, x_dot_ref)
 
-                    robot.Coppelia.setJointsTargetVelocity(q_control_dot)
+                    robot.Coppelia.setJointsTargetVelocity(q_dot_control)
                     robot.Coppelia.step()
 
                 robot.Coppelia.setJointsTargetVelocity([0,0,0,0,0,0,0])
