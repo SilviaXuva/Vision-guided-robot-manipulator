@@ -14,6 +14,7 @@ from Data.targets import Target, bins
 
 class VisionNonThreaded:
     def __init__(self, client, sim):
+        print('Init Vision...')
         self.client = client
         self.sim = sim
         

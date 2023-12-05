@@ -1,5 +1,6 @@
 class RobotiqGripper:
     def __init__(self, client, sim):
+        print('Init Gripper...')
         self.client = client
         self.sim = sim
         self.simIK = self.client.getObject('simIK')
@@ -55,6 +56,7 @@ class RobotiqGripper:
             
 class GripperChildScript:
     def __init__(self, client, sim, gripper_name = './ROBOTIQ85'):
+        print('Init Gripper...')
         self.client = client
         self.sim = sim
         

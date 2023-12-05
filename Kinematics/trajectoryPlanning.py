@@ -5,39 +5,43 @@ import numpy as np
 import roboticstoolbox as rtb
 from spatialmath import SE3
 from settings import Settings
+from Kinematics.measures import Ref, Real, getDot, poseToCart
+
+class CartesianTrajectory(Ref):
+    def __init__(self, x, x_dot, x_dot_dot) -> None:
+        q = q_dot = q_dot_dot = [None for _ in x]
+        super().__init__(q, q_dot, q_dot_dot, x, x_dot, x_dot_dot)
+
+class JointTrajectory(Ref):
+    def __init__(self, robot, q0, q, q_dot, q_dot_dot) -> None:
+        x = [poseToCart(robot.fkine(q)) for q in q]
+        x_dot = getDot(x, poseToCart(robot.fkine(q0)))
+        x_dot_dot = getDot(x_dot, poseToCart(robot.fkine(q0)))
+        super().__init__(q, q_dot, q_dot_dot, x, x_dot, x_dot_dot)
 
 def TrajectoryPlanning(robot, q0, T1, trajectory):
     if trajectory.type == 'cart':
         if trajectory.source == 'rtb':
-            ctraj = rtb.ctraj(robot.fkine(q0), T1, Settings.t) # Calculate reference cartesian/end-effector trajectory
-            ctraj = [SE3(pose) for pose in ctraj.A]  # Transform each pose into SE3
+            traj = rtb.ctraj(robot.fkine(q0), T1, Settings.t) # Calculate reference cartesian/end-effector trajectory
+            x_ref = [poseToCart(SE3(T_ref)) for T_ref in traj.A]
+            x_dot_ref = getDot(x_ref, poseToCart(robot.fkine(q0)))
+            x_dot_dot_ref = getDot(x_dot_ref, poseToCart(robot.fkine(q0)))
         elif trajectory.source == 'custom':
-            ctraj = quinticEndEffectorTraj(robot.fkine(q0), T1, Settings.t) # Calculate reference cartesian/end-effector trajectory
-            ctraj = [SE3.Trans(x[:3])*SE3.Eul(x[3:]) for x in ctraj.x]  # Transform each pose into SE3
-        return ctraj
-    elif trajectory.type == 'joint':
+            x_ref, x_dot_ref, x_dot_dot_ref = quinticEndEffectorTraj(robot.fkine(q0), T1, Settings.t) # Calculate reference cartesian/end-effector trajectory
+        traj = CartesianTrajectory(x_ref, x_dot_ref, x_dot_dot_ref)
+    else:
         if trajectory.source == 'rtb':
-            jtraj = rtb.jtraj(q0, robot.ikine_LMS(T1).q, Settings.t)  # Calculate reference joints trajectory
+            traj = rtb.jtraj(q0, robot.ikine_LMS(T1).q, Settings.t)  # Calculate reference joints trajectory
+            q_ref = traj.q; q_dot_ref = traj.qd; q_dot_dot_ref = traj.qdd
         elif trajectory.source == 'custom':
-            jtraj = quinticJointTraj(q0, robot.ikine_LMS(T1).q, Settings.t)  # Calculate reference joints trajectory
-        jtraj = [SE3(robot.fkine(q)) for q in jtraj.q]  # Transform each joint position into SE3 through forward kinematics
-        return jtraj
+            q_ref, q_dot_ref, q_dot_dot_ref = quinticJointTraj(q0, robot.ikine_LMS(T1).q, Settings.t)  # Calculate reference joints trajectory
+        traj = JointTrajectory(robot, q0, q_ref, q_dot_ref, q_dot_dot_ref)
 
-class cart:
-    def __init__(self, x, xd, xdd) -> None:
-        self.x = x
-        self.xd = xd
-        self.xdd = xdd
-
-class joint:
-    def __init__(self, q, qd, qdd) -> None:
-        self.q = q
-        self.qd = qd
-        self.qdd = qdd
+    return traj
 
 def quinticEndEffectorTraj(T0, T1, t):
-    x0 = np.block([T0.t, T0.eul()])
-    x1 = np.block([T1.t, T1.eul()])
+    x0 = poseToCart(T0)
+    x1 = poseToCart(T1)
         
     # Matrix T
     T = np.array([
@@ -68,11 +72,11 @@ def quinticEndEffectorTraj(T0, T1, t):
         
     tt = np.array([np.ones(t.shape), t, t**2, t**3, t**4, t**5]).T
     
-    x   = tt @ np.array([1*C[0], 1*C[1], 1*C[2], 1*C[3],  1*C[4],  1*C[5]])
-    xd  = tt @ np.array([0*C[0], 1*C[1], 2*C[2], 3*C[3],  4*C[4],  5*C[5]])
-    xdd = tt @ np.array([0*C[0], 0*C[1], 2*C[2], 6*C[3], 12*C[4], 20*C[5]])
+    x_ref   = tt @ np.array([1*C[0], 1*C[1], 1*C[2], 1*C[3],  1*C[4],  1*C[5]])
+    x_dot_ref  = tt @ np.array([0*C[0], 1*C[1], 2*C[2], 3*C[3],  4*C[4],  5*C[5]])
+    x_dot_dot_ref = tt @ np.array([0*C[0], 0*C[1], 2*C[2], 6*C[3], 12*C[4], 20*C[5]])
 
-    return cart(x, xd, xdd)
+    return x_ref, x_dot_ref, x_dot_dot_ref
 
 def quinticJointTraj(q0, q1, t):
     # Matrix T
@@ -104,8 +108,8 @@ def quinticJointTraj(q0, q1, t):
 
     tt = np.array([np.ones(t.shape), t, t**2, t**3, t**4, t**5]).T
     
-    q   = tt @ np.array([1*C[0], 1*C[1], 1*C[2], 1*C[3],  1*C[4],  1*C[5]])
-    qd  = tt @ np.array([0*C[0], 1*C[1], 2*C[2], 3*C[3],  4*C[4],  5*C[5]])
-    qdd = tt @ np.array([0*C[0], 0*C[1], 2*C[2], 6*C[3], 12*C[4], 20*C[5]])
+    q_ref   = tt @ np.array([1*C[0], 1*C[1], 1*C[2], 1*C[3],  1*C[4],  1*C[5]])
+    q_dot_ref  = tt @ np.array([0*C[0], 1*C[1], 2*C[2], 3*C[3],  4*C[4],  5*C[5]])
+    q_dot_dot_ref = tt @ np.array([0*C[0], 0*C[1], 2*C[2], 6*C[3], 12*C[4], 20*C[5]])
 
-    return joint(q, qd, qdd)
+    return q_ref, q_dot_ref, q_dot_dot_ref

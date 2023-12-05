@@ -47,7 +47,7 @@ class LBR_iiwa(DHRobot):
         self.name = 'LBRiiwa14R820'
         DHRobot.__init__(self, L, name=self.name, manufacturer="Kuka")
 
-        self.qr = np.array([0,0,0, 90*deg, 0,0,0])
+        self.qr = np.array([0,0,0, 90*deg, 0, 90*deg,-90*deg])
         Tr = self.fkine(self.qr)
         self.Tr = Target(Tr.t[0], Tr.t[1], Tr.t[2], Tr.rpy(order='xyz')[0], Tr.rpy(order='xyz')[1], Tr.rpy(order='xyz')[2], None, None)
         self.qz = np.array(
@@ -63,10 +63,6 @@ class LBR_iiwa(DHRobot):
         )
         Tz = self.fkine(self.qz)
         self.Tz = Target(Tz.t[0], Tz.t[1], Tz.t[2], Tz.rpy(order='xyz')[0], Tz.rpy(order='xyz')[1], Tz.rpy(order='xyz')[2], None, None)
-        
-        self.q_test = np.array([0,0,0, 90*deg, 0, -90*deg,0])
-        Ttest = self.fkine(self.q_test)
-        self.Ttest = Target(Ttest.t[0], Ttest.t[1], Ttest.t[2], Ttest.rpy(order='xyz')[0], Ttest.rpy(order='xyz')[1], Ttest.rpy(order='xyz')[2], None, None)
 
         self.addconfiguration("qr", self.qr)
         self.addconfiguration("qz", self.qz)

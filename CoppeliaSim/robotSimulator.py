@@ -11,7 +11,7 @@ class RobotSimulator:
         
         self.client = RemoteAPIClient()
         self.sim = self.client.getObject('sim')
-        
+
         self.stop()
         try:
             self.getRobotHandle()
@@ -27,11 +27,14 @@ class RobotSimulator:
             self.Gripper = RobotiqGripper(self.client, self.sim)
         if vision:
             self.Vision = VisionNonThreaded(self.client, self.sim)
-        
+            
         self.robot.q = self.getJointsPosition()
-        self.q = list()
+        self.robot.measures = list()
 
-    def step(self):
+    def step(self, x_ref = None):     
+        if hasattr(self, 'Drawing'):
+            self.Drawing.show(x_ref)
+
         if hasattr(self, 'Vision'):
             try:
                 self.Vision.getImg()
@@ -43,6 +46,7 @@ class RobotSimulator:
                 self.Vision.showImg()
             except Exception as e:
                 print(e)
+
         self.client.step()
     
     def start(self):

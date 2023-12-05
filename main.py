@@ -1,9 +1,12 @@
 """ Working with targets from Data.targets and Toolbox Cartesian Trajectory """
 
-from Kinematics.control import isClose, inverseDifferentialKinematics, cartesianSpaceController
+from Kinematics.control import isClose, inverseDifferentialKinematics, cartesianSpaceController, jointSpaceController
+from Kinematics.trajectoryPlanning import TrajectoryPlanning
+from Data.targets import initial
 from CoppeliaSim.robotSimulator import RobotSimulator
 from Models import DH_LBR_iiwa as LBR_iiwa
 import numpy as np
+from spatialmath import SE3
 from settings import Settings
 
 robot = LBR_iiwa()
@@ -13,41 +16,44 @@ robot.Coppelia.start()
 
 while True:
     robot.Coppelia.step()
-    pick_and_place = robot.Coppelia.Vision.getTargets()
+    pick_place_targets = robot.Coppelia.Vision.getTargets()
 
-    if len(pick_and_place) > 0:
-        for pp_targets in pick_and_place:
-            pp_targets.append(robot.Tz)
-            for target in pp_targets:
-                target.pathPlanning(robot, target.T, Settings.Trajectory)
-                
-                x0 = np.block([target.T0.t, target.T0.eul()])  # Initial end-effector position
-                
-                for i in range(len(target.ref)):
-                    if hasattr(robot.Coppelia, 'Drawing'):
-                        robot.Coppelia.Drawing.show([target.ref[i].t[0], target.ref[i].t[1], target.ref[i].t[2]])
+    if len(pick_place_targets) > 0:
+        for pick_target, place_target in pick_place_targets:
+            for i, target in enumerate([pick_target, place_target]):
+                robot.Coppelia.step()
+                target.q0 = robot.Coppelia.getJointsPosition()
+                target.T0 = robot.fkine(target.q0)
 
+                target.traj = TrajectoryPlanning(robot, target.q0, target.T, Settings.Trajectory)
+
+                for q_ref, x_ref, x_dot_ref in zip(target.traj.q_ref, target.traj.x_ref, target.traj.x_dot_ref):
+                    robot.Coppelia.x_ref = x_ref
+                    if q_ref is None:
+                        q_ref = robot.ikine_LMS(SE3.Trans(x_ref[:3])*SE3.Eul(x_ref[3:])).q
+                    
                     q = robot.Coppelia.getJointsPosition()
-                    target.q.append(q)
                     if isClose(robot, target.T, q):
+                        print(f'End-Effector is close to target {i+1}')
                         break
-                
-                    T_ref = target.ref[i]
-                    x_ref = np.block([T_ref.t, T_ref.eul()])
-                    x_dot_ref = (x_ref - x0)/Settings.Ts
-                    x0 = x_ref
                     
                     if Settings.Controller.type == 'cart':
                         q_control, q_dot_control = cartesianSpaceController(robot, x_ref, x_dot_ref, q)
                     elif Settings.Controller.type == 'joint':
-                        # q0, q_dot_control = jointSpaceController(robot, q0, x_dot_ref, q)
-                        pass
+                        q_control, q_dot_control = jointSpaceController(robot, q_ref, x_dot_ref, q)
                     elif Settings.Controller.type is None:
                         q_dot_control = inverseDifferentialKinematics(robot, q, x_dot_ref)
-
                     robot.Coppelia.setJointsTargetVelocity(q_dot_control)
                     robot.Coppelia.step()
 
+                    target.x_ref.append(x_ref)
+                    target.x_real.append(np.block([robot.fkine(q).t, robot.fkine(q).eul()]))
+                    target.q_ref.append(q_ref)
+                    target.q_real.append(q)
+
+                if Settings.plot:
+                    target.plot_x(robot)
+                    target.plot_q(robot)
                 robot.Coppelia.setJointsTargetVelocity([0,0,0,0,0,0,0])
                 robot.Coppelia.step()
 
