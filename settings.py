@@ -4,6 +4,7 @@ import numpy as np
 import os
 import sys
 import json
+from spatialmath import SE3, SO3
 
 class Logger(object):
     def __init__(self, folder):
@@ -14,11 +15,16 @@ class Logger(object):
         message = list(message)
         for i, msg in enumerate(message):
             if isinstance(msg, np.ndarray):
-                message[i] = np.array2string(msg, formatter={'float_kind':lambda x: "%.2f" % x})
+                message[i] = np.array2string(msg, formatter={'float_kind':lambda x: "%.5f" % x})
             elif isinstance(msg, list):
                 message[i] = ', '.join([str(m) for m in msg])
             elif isinstance(msg, dict):
                 message[i] = json.dumps(msg, indent=4)
+            else:
+                try:
+                    message[i] = str(msg)
+                except Exception as e:
+                    print(e)
         self.terminal.write('\n'.join(message) + '\n')
         self.file.write('\n'.join(message) + '\n')
         self.file.flush()
@@ -50,11 +56,13 @@ class Trajectory:
         self.source = source
 
 class Camera:
-    def __init__(self, sensor_object='./camera1', perspective_angle=30, unit='deg', distortion_coefficients=None) -> None:
+    def __init__(self, sensor_object='./camera1', distortion_coefficients=None, frame_rotation = SE3.Rz(np.pi)) -> None:
         self.sensor_object = sensor_object
-        self.perspective_angle = perspective_angle
-        self.unit = unit
-        self.distortion_coefficients = distortion_coefficients
+        if distortion_coefficients is None:
+            self.distortion_coefficients = None
+        else:
+            self.distortion_coefficients = np.array(distortion_coefficients)
+        self.frame_rotation = frame_rotation
 
 class Aruco:
     def __init__(self, aruco_dict=cv2.aruco.DICT_6X6_250, aruco_lenght=0.05) -> None:
@@ -62,12 +70,20 @@ class Aruco:
         parameters = cv2.aruco.DetectorParameters()
         self.detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
         self.aruco_lenght = aruco_lenght
+        self.estimate_param = cv2.aruco.EstimateParameters()
+        self.estimate_param.solvePnPMethod=0
+        self.marker_points = np.array([
+            [[-aruco_lenght/2, aruco_lenght/2, 0]],
+            [[aruco_lenght/2, aruco_lenght/2, 0]],
+            [[aruco_lenght/2, -aruco_lenght/2, 0]],
+            [[-aruco_lenght/2, -aruco_lenght/2, 0]]
+        ])        
 
 class Settings:
     Ts = 0.05
     T_tot = 10
     t = np.arange(0, T_tot + Ts, Ts)
-    Tolerance = Tolerance(tol_trans = 0.005, tol_rot = 1)
+    Tolerance = Tolerance(tol_trans = 0.0000005, tol_rot = 0.2)
 
     # Controller = Controller(None)
     # Trajectory = Trajectory('cart', 'custom')
@@ -110,8 +126,10 @@ class Settings:
         ]
     )
 
-    Camera = Camera(sensor_object='/camera1', perspective_angle=30, unit='deg')
+    Camera = Camera(sensor_object='/camera1',distortion_coefficients=None, frame_rotation = SE3.Rz(np.pi))
     Aruco = Aruco(aruco_dict=cv2.aruco.DICT_6X6_250, aruco_lenght=0.05)
+    gripper_rotation = SE3.RPY([-3.14159265e+00,  1.22464680e-16, -1.57079633e+00])
+    target_increase_height = 0.3
     pre_processing_parameters_path = os.path.abspath(r'.\VisionProcessing\pre_processing_parameters.npz')
 
     output_path = os.path.abspath('.\Outputs')

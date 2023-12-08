@@ -30,4 +30,4 @@ def getDot(x, x0):
     return dot
 
 def poseToCart(T):
-    return np.block([T.t, T.eul()])
+    return np.block([T.t, T.rpy()])

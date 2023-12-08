@@ -1,17 +1,24 @@
+import numpy as np
+
 class DrawingObject():
     def __init__(self, sim, tip_handle, color) -> None:
         self.sim = sim
         self.tip_handle = tip_handle
         self.obj = sim.addDrawingObject(self.sim.drawing_lines|self.sim.drawing_cyclic, 2, 0, -1, 200, color)
-        self.pos = sim.getObjectPosition(self.tip_handle, self.sim.handle_world)
+        self.pos = np.array(sim.getObjectPosition(self.tip_handle, self.sim.handle_world))
 
     def updateLine(self, pos):
-        line = self.pos
-        self.pos = list(pos)
-        for axis in self.pos:
-            line.append(axis)
-        self.sim.addDrawingObjectItem(self.obj, line)
-
+        pos = np.array(pos)
+        line = np.concatenate([self.pos, pos])
+        self.sim.addDrawingObjectItem(self.obj, line.tolist())
+        # x_axis = np.concatenate([pos, np.array([pos[0]+0.05, pos[1], pos[2]])])
+        # y_axis = np.concatenate([pos, np.array([pos[0], pos[1]+0.05, pos[2]])])
+        # z_axis = np.concatenate([pos, np.array([pos[0], pos[1], pos[2]+0.05])])
+        # self.sim.addDrawingObjectItem(self.obj, x_axis.tolist())
+        # self.sim.addDrawingObjectItem(self.obj, y_axis.tolist())
+        # self.sim.addDrawingObjectItem(self.obj, z_axis.tolist())
+        self.pos = pos
+        
 class Ref(DrawingObject):
     def __init__(self, sim, tip_handle, color = [0, 0, 1]) -> None:
         super().__init__(sim, tip_handle, color)
@@ -28,7 +35,6 @@ class Drawing:
         print('Init Drawing...')
         self.client = client
         self.sim = sim
-        self.clear()
         
         self.tip_handle = self.sim.getObject('./tip')
         self.Ref = Ref(self.sim, self.tip_handle)
@@ -38,11 +44,11 @@ class Drawing:
         self.Real.updateLine()
         if ref_pos is not None:
             self.Ref.updateLine(ref_pos)
-        
-    def clear(self):
-        for i in range(1,16):
-            try:
-                self.sim.addDrawingObjectItem(i, None)
-                self.sim.removeDrawingObject(i, None)
-            except:
-                pass
+
+def clearDrawing(sim):
+    for i in range(1,16):
+        try:
+            sim.addDrawingObjectItem(i, None)
+            sim.removeDrawingObject(i, None)
+        except:
+            pass

@@ -30,7 +30,7 @@ class LBR_iiwa(DHRobot):
 
         deg = np.pi/180
         mm = 1e-3
-        flange = 220 * mm
+        flange = 230 * mm
 
         # This Kuka model is defined using modified
         # Denavit-Hartenberg parameters
@@ -49,7 +49,12 @@ class LBR_iiwa(DHRobot):
 
         self.qr = np.array([0,0,0, 90*deg, 0, 90*deg,-90*deg])
         Tr = self.fkine(self.qr)
-        self.Tr = Target(Tr.t[0], Tr.t[1], Tr.t[2], Tr.rpy(order='xyz')[0], Tr.rpy(order='xyz')[1], Tr.rpy(order='xyz')[2], None, None)
+        self.Tr = Target(
+            x = Tr.t[0], y = Tr.t[1], z = Tr.t[2], 
+            rpy = Tr.rpy(), 
+            gripperActuation = None, 
+            shape_path = None
+        )
         self.qz = np.array(
             [
                 -0.01647629216313362, 
@@ -62,14 +67,18 @@ class LBR_iiwa(DHRobot):
             ]
         )
         Tz = self.fkine(self.qz)
-        self.Tz = Target(Tz.t[0], Tz.t[1], Tz.t[2], Tz.rpy(order='xyz')[0], Tz.rpy(order='xyz')[1], Tz.rpy(order='xyz')[2], None, None)
+        self.Tz = Target(
+            x = Tz.t[0], y = Tz.t[1], z = Tz.t[2], 
+            rpy = Tz.rpy(), 
+            gripperActuation = None, 
+            shape_path = None
+        )
 
         self.addconfiguration("qr", self.qr)
         self.addconfiguration("qz", self.qz)
         
         self.number_joints = self.n
         self.type = 'DH'
-
 
 if __name__ == "__main__":  # pragma nocover
 

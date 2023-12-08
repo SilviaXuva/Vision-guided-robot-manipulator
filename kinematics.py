@@ -2,6 +2,7 @@ from Kinematics.control import isClose, inverseDifferentialKinematics, cartesian
 from Kinematics.trajectoryPlanning import TrajectoryPlanning
 from Kinematics.measures import Real, Ref, poseToCart
 from CoppeliaSim.robotSimulator import RobotSimulator
+from Data.plotOutputs import plotOutputs
 from Models import DH_LBR_iiwa as LBR_iiwa
 import numpy as np
 from spatialmath import SE3
@@ -15,10 +16,10 @@ robot.Coppelia = RobotSimulator(robot, scene = 'main_scene.ttt', drawing = True,
 
 robot.Coppelia.start()
 
-targets = [bins['green']]
+targets = [green]
 for i, target in enumerate(targets):
     robot.Coppelia.step()
-    q = target.q0 = robot.Coppelia.getJointsPosition()
+    target.q0 = robot.Coppelia.getJointsPosition()
     target.T0 = robot.fkine(target.q0)
 
     target.traj = TrajectoryPlanning(robot, target.q0, target.T, Settings.Trajectory)
@@ -45,12 +46,12 @@ for i, target in enumerate(targets):
             Ref(q_ref, q_dot_ref, q_dot_dot_ref, x_ref, x_dot_ref, x_dot_dot_ref)
         ])
 
-    if Settings.plot:
-        target.prepare_plot()
-        target.plot_x()
-        target.plot_q(robot)
+    target.saveData(robot)
     
     robot.Coppelia.setJointsTargetVelocity([0,0,0,0,0,0,0])
     robot.Coppelia.step()
 
 robot.Coppelia.stop()
+
+if Settings.plot:
+    plotOutputs(robot.number_joints, folder = Settings.execution_path)

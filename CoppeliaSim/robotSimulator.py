@@ -1,9 +1,10 @@
 import numpy as np
 import os
-from CoppeliaSim.drawing import Drawing
+from CoppeliaSim.drawing import Drawing, clearDrawing
 from CoppeliaSim.gripper import GripperChildScript, RobotiqGripper
 from CoppeliaSim.vision import VisionNonThreaded, VisionThreaded
 from zmqRemoteApi import RemoteAPIClient
+from settings import Settings
 
 class RobotSimulator:
     def __init__(self, robot, scene = 'main_scene.ttt', drawing = False, gripper = False, vision = False) -> None:
@@ -29,7 +30,7 @@ class RobotSimulator:
             self.Vision = VisionNonThreaded(self.client, self.sim)
             
         self.robot.q = self.getJointsPosition()
-        self.robot.measures = list()
+
 
     def step(self, x_ref = None):     
         if hasattr(self, 'Drawing'):
@@ -42,10 +43,9 @@ class RobotSimulator:
                 self.Vision.detectAruco()
                 self.Vision.drawAruco()
                 self.Vision.drawArucoPose()
-                self.Vision.estimateArucoPose()
-                self.Vision.showImg()
             except Exception as e:
-                print(e)
+                Settings.log('While processing ArUco:', repr(e))
+            self.Vision.showImg()
 
         self.client.step()
     
@@ -55,10 +55,10 @@ class RobotSimulator:
         self.sim.startSimulation()
         print('Simulation started')
         self.client.step()
+        self.step()
 
     def stop(self):
-        if hasattr(self, 'Drawing'):
-            self.Drawing.clear()
+        clearDrawing(self.sim)
         self.sim.stopSimulation()
         self.sim.setInt32Param(self.sim.intparam_idle_fps, 8)
         print('Simulation stopped')

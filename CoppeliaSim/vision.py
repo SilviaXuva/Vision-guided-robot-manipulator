@@ -1,16 +1,14 @@
 import cv2
 import numpy as np
-from spatialmath import SE3
-from scipy.spatial.transform import Rotation
-
+from spatialmath import SE3, SO3
+from collections import namedtuple
 from threading import Thread, Event
-
 from settings import Settings
 from VisionProcessing.color_based_filters import removeBackground, maskRanges, getGray, data
 from VisionProcessing.filters import getBlur, getThreshold, getCanny, getCornersByGoodFeatures, getCornersByHarris, refineCorners
 from VisionProcessing.segmentation import drawEachContourAndCenter, matchShapes
-from VisionProcessing.gui_features import writeText
-from Data.targets import Target, bins
+from VisionProcessing.gui_features import writeText 
+from Data import Target, bins, meanSquareError
 
 class VisionNonThreaded:
     def __init__(self, client, sim):
@@ -19,80 +17,39 @@ class VisionNonThreaded:
         self.sim = sim
         
         self.vision_sensor_handle = self.sim.getObject(Settings.Camera.sensor_object)
-        self.getCameraParameters(Settings.Camera.perspective_angle, Settings.Camera.unit)
-        self.getCameraPose()
+        self.getCameraParameters()
+        self.getIntrinsicMatrix()
+        Settings.log('camera_intrinsic:', self.camera_intrinsic)
+        Settings.log('distortion_coefficients:', self.distortion_coefficients)        
+        self.getExtrinsicMatrix()
+        Settings.log('camera_extrinsic:', self.camera_extrinsic)
+
+    def getCameraParameters(self):
+        self.res_x, self.res_y = self.sim.getVisionSensorRes(self.vision_sensor_handle)
+        self.perspective_angle = self.sim.getObjectFloatParam(self.vision_sensor_handle, self.sim.visionfloatparam_perspective_angle)
+        self.fov_x = self.fov_y = self.perspective_angle
+        self.res_x, self.res_y, self.fov_x, self.fov_y
+
+    def getExtrinsicMatrix(self):
+        pos = self.sim.getObjectPosition(self.vision_sensor_handle, self.sim.handle_world)
+        abg = self.sim.getObjectOrientation(self.vision_sensor_handle, self.sim.handle_world)
+        ypr = self.sim.alphaBetaGammaToYawPitchRoll(abg[0], abg[1], abg[2])
+        rpy = [ypr[0], ypr[1], ypr[2]]
+        camera_world_T = SE3.Trans(pos)*SE3.RPY(rpy, order='zyx')
+        Settings.log('camera_world_T:', camera_world_T.A)
+        self.camera_extrinsic = (camera_world_T*Settings.Camera.frame_rotation).A
+
+    def getIntrinsicMatrix(self):
         cx = self.res_x/2
         cy = self.res_y/2
         fx = cx/np.tan(self.fov_x/2)
         fy = cy/np.tan(self.fov_y/2)
-        self.calculated_camera_matrix = np.array([
+        self.camera_intrinsic = np.array([
             [fx, 0,  cx],
             [0,  fy, cy],
             [0,  0,  1 ]
         ])
-        self.distortion_coefficients = None
-        self.T_camera_world = SE3.Trans(self.pos)*SE3.RPY(self.rpy, order='xyz')
-        Settings.log('calculated_camera_matrix:', self.calculated_camera_matrix)
-        Settings.log('T_camera_world:', np.array(self.T_camera_world))
-
-        self.getArucoRealPose()
-
-    def getCameraParameters(self, perspective_angle = 30, unit = 'deg'):
-        self.res_x, self.res_y = self.sim.getVisionSensorRes(self.vision_sensor_handle)
-        if unit == 'deg':
-            perspective_angle *= np.pi/180
-        self.fov_x = self.fov_y = perspective_angle
-        self.res_x, self.res_y, self.fov_x, self.fov_y
-
-    def getCameraPose(self):
-        self.pos = self.sim.getObjectPosition(self.vision_sensor_handle, self.sim.handle_world)
-        self.abg = self.sim.getObjectOrientation(self.vision_sensor_handle, self.sim.handle_world)
-        self.ypr = self.sim.alphaBetaGammaToYawPitchRoll(self.abg[0], self.abg[1], self.abg[2])
-        self.rpy = [self.ypr[0]-np.pi, self.ypr[1], self.ypr[2]]
-
-    def getArucoRealPose(self):
-        def transformCoppeliaMatrix(matrix_array):
-            matrix = np.matrix(
-                np.vstack([
-                    np.array(matrix_array).reshape(3,4), 
-                    np.array([0,0,0,1])
-                ]))
-            return matrix
-        properties = {
-            't': self.sim.getObjectPosition,
-            'r': self.sim.getObjectOrientation,
-            'm': self.sim.getObjectMatrix
-        }
-        system_references = {
-            'world': self.sim.handle_world,
-            'camera': self.vision_sensor_handle
-        }
-        self.coppelia_properties = {}
-
-        for i in range(1, 100):
-            try:
-                self.coppelia_properties[f'marker{i}'] = self.sim.getObject(f'./marker{i}')
-                for sys_ref in system_references.keys():
-                    for prop in properties.keys():
-                        if prop == 'm':
-                            self.coppelia_properties[f'marker{i}_{sys_ref}_{prop}'] = transformCoppeliaMatrix(properties[prop](self.coppelia_properties[f'marker{i}'], system_references[sys_ref]))
-                        else:
-                            self.coppelia_properties[f'marker{i}_{sys_ref}_{prop}'] = np.array(properties[prop](self.coppelia_properties[f'marker{i}'], system_references[sys_ref]))
-            except:
-                self.coppelia_properties['camera'] = self.vision_sensor_handle
-                system_references = {
-                    'world': self.sim.handle_world
-                }
-                for i in range(1, i):
-                    system_references[f'marker{i}'] = self.coppelia_properties[f'marker{i}']
-                for sys_ref in system_references.keys():
-                    for prop in properties.keys():
-                        if prop == 'm':
-                            self.coppelia_properties[f'camera_{sys_ref}_{prop}'] = transformCoppeliaMatrix(properties[prop](self.coppelia_properties['camera'], system_references[sys_ref]))
-                        else:
-                            self.coppelia_properties[f'camera_{sys_ref}_{prop}'] = np.array(properties[prop](self.coppelia_properties['camera'], system_references[sys_ref]))
-                break
-        return self.coppelia_properties
+        self.distortion_coefficients = Settings.Camera.distortion_coefficients
 
     def getImg(self):
         frame, resX, resY = self.sim.getVisionSensorCharImage(self.vision_sensor_handle)
@@ -106,9 +63,18 @@ class VisionNonThreaded:
         self.draw = self.frame.copy()
     
     def showImg(self):
-        cv2.imshow('Draw', self.draw)
-        cv2.imshow('Output', self.output)
-        cv2.imshow('Frame', self.frame)
+        try:
+            cv2.imshow('Draw', self.draw)
+        except Exception as e:
+            Settings.log('Show drawing image error', e)
+        try:
+            cv2.imshow('Processed', self.output)
+        except Exception as e:
+            Settings.log('Show processed image error', e)            
+        try:
+            cv2.imshow('Frame', self.frame)
+        except Exception as e:
+            Settings.log('Show frame image error', e)
         cv2.waitKey(1)
 
     def preProcessing(self):
@@ -117,12 +83,16 @@ class VisionNonThreaded:
         self.output = getGray(self.output)
 
     def detectAruco(self):
-        self.aruco_corners, ids, rejectedCandidates = Settings.Aruco.detector.detectMarkers(self.output)
         self.aruco_markers = list()
+        self.aruco_corners, ids, rejectedCandidates = Settings.Aruco.detector.detectMarkers(self.output)
         # If markers are detected
         if len(self.aruco_corners) > 0:
             for (marker_corners, marker_ID) in zip(self.aruco_corners, ids):
-                roi = self.frame[int(marker_corners[0][0][1]):int(marker_corners[0][2][1]), int(marker_corners[0][0][0]):int(marker_corners[0][1][0])]
+                min_x = int(min(marker_corners[0][:,1]))
+                max_x = int(max(marker_corners[0][:,1]))
+                min_y = int(min(marker_corners[0][:,0]))
+                max_y = int(max(marker_corners[0][:,0]))
+                roi = self.frame[min_x:max_x, min_y:max_y]
                 _,colors = maskRanges(roi)
                 self.aruco_markers.append(ArucoMarker(marker_corners, marker_ID[0], colors[0]))
 
@@ -138,52 +108,104 @@ class VisionNonThreaded:
         # If markers are detected
         if len(self.aruco_markers) > 0:
             for i, marker in enumerate(self.aruco_markers):	
-                # Estimate pose of each marker and return the values rvec and tvec---(different from those of camera coefficients)
-                # Aruco to camera frame			
-                rvec, tvec, marker_points = cv2.aruco.estimatePoseSingleMarkers(marker.corners, Settings.Aruco.aruco_lenght, self.calculated_camera_matrix, self.distortion_coefficients)
-                tvec = tvec[0].transpose()
-                self.aruco_markers[i].rvec = rvec
-                self.aruco_markers[i].tvec = tvec
+                # # Estimate pose of each marker and return the values rvec and tvec---(different from those of camera coefficients)
+                # # Aruco to camera frame			
+                rvec, tvec, marker_points = cv2.aruco.estimatePoseSingleMarkers(
+                    marker.corners, 
+                    Settings.Aruco.aruco_lenght, 
+                    self.camera_intrinsic, 
+                    self.distortion_coefficients,
+                    estimateParameters=Settings.Aruco.estimate_param
+                )
 
+                self.aruco_markers[i].rvec = rvec.flatten()
+                self.aruco_markers[i].tvec = tvec.flatten()
+            
                 # Draw Axis
-                cv2.drawFrameAxes(self.draw, self.calculated_camera_matrix, self.distortion_coefficients, rvec, tvec, Settings.Aruco.aruco_lenght)
+                cv2.drawFrameAxes(self.draw, self.camera_intrinsic, self.distortion_coefficients, rvec.flatten(), tvec.flatten(), Settings.Aruco.aruco_lenght)
 
+    def getArucoRealPose(self, marker_id):
+        def transformCoppeliaMatrix(matrix_array):
+            matrix = SE3(np.array(
+                np.vstack([
+                    np.array(matrix_array).reshape(3,4), 
+                    np.array([0,0,0,1])
+                ])))
+            return matrix
+        RealPose = namedtuple('RealPose', ['camera_T', 'world_T'])
+        try:
+            marker_camera_T = transformCoppeliaMatrix(
+                self.sim.getObjectMatrix(self.sim.getObject(f'./marker{marker_id}'), self.sim.getObject('./cameraFrame'))
+            )   
+            marker_world_T = transformCoppeliaMatrix(
+                self.sim.getObjectMatrix(self.sim.getObject(f'./marker{marker_id}'), self.sim.handle_world)
+            )
+            real_pose = RealPose(marker_camera_T, marker_world_T)
+        except:
+            real_pose = RealPose(None, None)
+        return real_pose
+    
     def estimateArucoPose(self):
-        # If markers are detected
+        marker = self.aruco_markers[0]
         if len(self.aruco_markers) > 0:
-            for i, marker in enumerate(self.aruco_markers):	
-                rmat, _ = cv2.Rodrigues(marker.rvec)
+            rmat, _ = cv2.Rodrigues(marker.rvec)
 
-                # Matriz de transformação da câmera para o sistema do marcador
-                T_object_camera = np.vstack([np.hstack([rmat.transpose(), marker.tvec]), np.array([0, 0, 0, 1])])
+            # Matriz de transformação da câmera para o sistema do marcador
+            object_camera_T = SE3(np.vstack([np.hstack([rmat, np.reshape(marker.tvec,(3,1))]), np.array([0, 0, 0, 1])]))
 
-                # Matriz de transformação do marcador para o sistema global
-                T_object_world = np.dot(self.T_camera_world, T_object_camera)
-                object_world_r = T_object_world[:3, :3]
-                object_world_t = T_object_world[:3, 3]
-                
-                Settings.log((f'========== ID: {marker.id} ============'))
-                Settings.log('---------- Object to world ------------')
-                Settings.log('---------- r ------------')
-                Settings.log('Estimated:', Rotation.from_matrix(object_world_r).as_euler('xyz'))
-                Settings.log('Real:', self.coppelia_properties[f'marker{marker.id}_world_r'])
-                Settings.log('---------- t ------------')
-                Settings.log('Estimated:', object_world_t)
-                Settings.log('Real:', self.coppelia_properties[f'marker{marker.id}_world_t'])
+            # Matriz de transformação do marcador para o sistema global
+            object_world_T = SE3(self.camera_extrinsic@object_camera_T.A)
+            
+            self.aruco_markers[0].object_world_T = object_world_T
 
-                self.aruco_markers[i].object_world_r = object_world_r
-                self.aruco_markers[i].object_world_t = object_world_t
+            real_pose = self.getArucoRealPose(marker.id)
+            Settings.log(f'========== ID: {marker.id}__Color: {marker.color} ============')
+            Settings.log('---------- Object to camera ------------')
+            Settings.log('---------- r ------------')
+            Settings.log('Estimated:', object_camera_T.rpy())
+            Settings.log('Real:', real_pose.camera_T.rpy())
+            Settings.log('Error:', meanSquareError(object_camera_T.rpy(), real_pose.camera_T.rpy()))
+            Settings.log('---------- t ------------')
+            Settings.log('Estimated:', object_camera_T.t)
+            Settings.log('Real:', real_pose.camera_T.t)
+            Settings.log('Error:', meanSquareError(object_camera_T.t, real_pose.camera_T.t))               
+            Settings.log('---------- Object to world ------------')
+            Settings.log('---------- r ------------')
+            Settings.log('Estimated:', object_world_T.rpy())
+            Settings.log('Real:', real_pose.world_T.rpy())
+            Settings.log('Error:', meanSquareError(object_world_T.rpy(), real_pose.world_T.rpy()))
+            Settings.log('---------- t ------------')
+            Settings.log('Estimated:', object_world_T.t)
+            Settings.log('Real:', real_pose.world_T.t)
+            Settings.log('Error:', meanSquareError(object_world_T.t, real_pose.world_T.t))
 
-    def getTargets(self):
-        pick_and_place = list()
+    def getTarget(self, robot):
+        marker = self.aruco_markers[0]
+        TimedTarget = namedtuple('PickPlace', ['t', 'Target'])
         if len(self.aruco_markers) > 0:
-            for marker in self.aruco_markers:
-                pick_and_place.append([
-                    Target(
-                        marker.object_world_t[0], marker.object_world_t[1], marker.object_world_t[2], -np.pi, 0, np.pi/2, 'close', f'./{marker.color}'
-                    ),
-                    bins[marker.color]
-                ])
+            bin = bins[marker.color]
+            bin.shape_path = f'./{marker.color}{marker.id}'
+            pick_and_place = [
+                TimedTarget(Settings.t, Target(
+                    x = marker.object_world_T.t[0], 
+                    y = marker.object_world_T.t[1], 
+                    z = marker.object_world_T.t[2] + Settings.target_increase_height, 
+                    rpy = marker.object_world_T.rpy(), 
+                    r_xyz = None,
+                    gripperActuation = None, 
+                    shape_path = None
+                )),
+                TimedTarget(np.arange(0, 2 + Settings.Ts, Settings.Ts), Target(
+                    x = marker.object_world_T.t[0], 
+                    y = marker.object_world_T.t[1], 
+                    z = marker.object_world_T.t[2], 
+                    rpy = marker.object_world_T.rpy(), 
+                    r_xyz = None,
+                    gripperActuation = 'close', 
+                    shape_path = f'./{marker.color}{marker.id}'
+                )),
+                TimedTarget(Settings.t, bin)
+            ]
         return pick_and_place
 
 class ArucoMarker():

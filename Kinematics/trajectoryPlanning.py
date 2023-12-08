@@ -19,22 +19,22 @@ class JointTrajectory(Ref):
         x_dot_dot = getDot(x_dot, poseToCart(robot.fkine(q0)))
         super().__init__(q, q_dot, q_dot_dot, x, x_dot, x_dot_dot)
 
-def TrajectoryPlanning(robot, q0, T1, trajectory):
+def TrajectoryPlanning(robot, q0, T1, t, trajectory):
     if trajectory.type == 'cart':
         if trajectory.source == 'rtb':
-            traj = rtb.ctraj(robot.fkine(q0), T1, Settings.t) # Calculate reference cartesian/end-effector trajectory
+            traj = rtb.ctraj(robot.fkine(q0), T1, t) # Calculate reference cartesian/end-effector trajectory
             x_ref = [poseToCart(SE3(T_ref)) for T_ref in traj.A]
             x_dot_ref = getDot(x_ref, poseToCart(robot.fkine(q0)))
             x_dot_dot_ref = getDot(x_dot_ref, poseToCart(robot.fkine(q0)))
         elif trajectory.source == 'custom':
-            x_ref, x_dot_ref, x_dot_dot_ref = quinticEndEffectorTraj(robot.fkine(q0), T1, Settings.t) # Calculate reference cartesian/end-effector trajectory
+            x_ref, x_dot_ref, x_dot_dot_ref = quinticEndEffectorTraj(robot.fkine(q0), T1, t) # Calculate reference cartesian/end-effector trajectory
         traj = CartesianTrajectory(x_ref, x_dot_ref, x_dot_dot_ref)
     else:
         if trajectory.source == 'rtb':
-            traj = rtb.jtraj(q0, robot.ikine_LMS(T1).q, Settings.t)  # Calculate reference joints trajectory
+            traj = rtb.jtraj(q0, robot.ikine_LMS(T1).q, t)  # Calculate reference joints trajectory
             q_ref = traj.q; q_dot_ref = traj.qd; q_dot_dot_ref = traj.qdd
         elif trajectory.source == 'custom':
-            q_ref, q_dot_ref, q_dot_dot_ref = quinticJointTraj(q0, robot.ikine_LMS(T1).q, Settings.t)  # Calculate reference joints trajectory
+            q_ref, q_dot_ref, q_dot_dot_ref = quinticJointTraj(q0, robot.ikine_LMS(T1).q, t)  # Calculate reference joints trajectory
         traj = JointTrajectory(robot, q0, q_ref, q_dot_ref, q_dot_dot_ref)
 
     return traj
@@ -60,8 +60,7 @@ def quinticEndEffectorTraj(T0, T1, t):
         Q = np.array([
         # ---Initial---
             [x0[i]],
-            [0],
-            [0],
+            [0]
         # ---Final---
             [x1[i]],
             [0],
