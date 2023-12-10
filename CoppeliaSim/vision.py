@@ -1,21 +1,30 @@
-import cv2
+from settings import Settings
+from VisionProcessing.colorBasedFilters import maskRanges, getGray
+from VisionProcessing.guiFeatures import writeText, drawingFrame
+from Data.meanSquareError import meanSquareError
+from Data.targets import bins, Target
+from CoppeliaSim.gripper import Actuation
+
+from spatialmath import SE3
 import numpy as np
-from spatialmath import SE3, SO3
+import cv2
 from collections import namedtuple
 from threading import Thread, Event
-from settings import Settings
-from VisionProcessing.color_based_filters import removeBackground, maskRanges, getGray, data
-from VisionProcessing.filters import getBlur, getThreshold, getCanny, getCornersByGoodFeatures, getCornersByHarris, refineCorners
-from VisionProcessing.segmentation import drawEachContourAndCenter, matchShapes
-from VisionProcessing.gui_features import writeText 
-from Data import Target, bins, meanSquareError
+import math
 
 class VisionNonThreaded:
     def __init__(self, client, sim):
-        print('Init Vision...')
+        Settings.log('Init Vision...')
         self.client = client
         self.sim = sim
         
+        try:
+            self.proximity_handle = self.sim.getObjectHandle('./ref_proximitySensor')
+            self.conveyor_handle = self.sim.getObjectHandle('./conveyor')
+        except:
+            self.proximity_handle = None
+            self.conveyor_handle = None
+
         self.vision_sensor_handle = self.sim.getObject(Settings.Camera.sensor_object)
         self.getCameraParameters()
         self.getIntrinsicMatrix()
@@ -85,34 +94,34 @@ class VisionNonThreaded:
     def detectAruco(self):
         self.aruco_markers = list()
         self.aruco_corners, ids, rejectedCandidates = Settings.Aruco.detector.detectMarkers(self.output)
-        # If markers are detected
-        if len(self.aruco_corners) > 0:
+        
+        if len(self.aruco_corners) > 0: # If markers are detected
             for (marker_corners, marker_ID) in zip(self.aruco_corners, ids):
-                min_x = int(min(marker_corners[0][:,1]))
-                max_x = int(max(marker_corners[0][:,1]))
-                min_y = int(min(marker_corners[0][:,0]))
-                max_y = int(max(marker_corners[0][:,0]))
-                roi = self.frame[min_x:max_x, min_y:max_y]
-                _,colors = maskRanges(roi)
-                self.aruco_markers.append(ArucoMarker(marker_corners, marker_ID[0], colors[0]))
+                min_y = int(min(marker_corners[0][:,1])); max_y = int(max(marker_corners[0][:,1]))
+                min_x = int(min(marker_corners[0][:,0])); max_x = int(max(marker_corners[0][:,0]))
+                roi = self.frame[min_y:max_y, min_x:max_x]
+                _, colors = maskRanges(roi)
+                marker_color = colors[0] if len(colors) > 0 else None
+                self.aruco_markers.append(ArucoMarker(marker_corners, int(marker_ID[0]), marker_color))
 
     def drawAruco(self):
-        # Draw a square around the markers
-        cv2.aruco.drawDetectedMarkers(self.draw, self.aruco_corners)
-        # If markers are detected
-        if len(self.aruco_markers) > 0:
-            for i, marker in enumerate(self.aruco_markers):	
-                writeText(self.draw, marker.id, (int(marker.corners[0][0][0]), int(marker.corners[0][0][1])))
+        cv2.aruco.drawDetectedMarkers(self.draw, self.aruco_corners) # Draw a square around the markers
+        
+        if len(self.aruco_markers) > 0: # If markers are detected
+            for marker in self.aruco_markers:
+                min_x = int(min(marker.corners[0][:,1])); max_x = int(max(marker.corners[0][:,1]))
+                min_y = int(min(marker.corners[0][:,0])); max_y = int(max(marker.corners[0][:,0]))                
+                x = int(max_x + (max_x - min_x)/2)
+                y = int(max_y)
+                writeText(self.draw, marker.id, (y, x), thickness=3)
 
     def drawArucoPose(self):
-        # If markers are detected
-        if len(self.aruco_markers) > 0:
+        if len(self.aruco_markers) > 0: # If markers are detected
             for i, marker in enumerate(self.aruco_markers):	
-                # # Estimate pose of each marker and return the values rvec and tvec---(different from those of camera coefficients)
-                # # Aruco to camera frame			
+                # Estimate marker pose to camera frame
                 rvec, tvec, marker_points = cv2.aruco.estimatePoseSingleMarkers(
                     marker.corners, 
-                    Settings.Aruco.aruco_lenght, 
+                    Settings.Aruco.length, 
                     self.camera_intrinsic, 
                     self.distortion_coefficients,
                     estimateParameters=Settings.Aruco.estimate_param
@@ -120,11 +129,18 @@ class VisionNonThreaded:
 
                 self.aruco_markers[i].rvec = rvec.flatten()
                 self.aruco_markers[i].tvec = tvec.flatten()
-            
-                # Draw Axis
-                cv2.drawFrameAxes(self.draw, self.camera_intrinsic, self.distortion_coefficients, rvec.flatten(), tvec.flatten(), Settings.Aruco.aruco_lenght)
 
-    def getArucoRealPose(self, marker_id):
+                drawingFrame(
+                    self.draw, 
+                    self.camera_intrinsic,
+                    self.distortion_coefficients,
+                    rvec,
+                    tvec,
+                    Settings.Aruco.length
+                )
+
+    def getArucoRealPose(self, marker_id: int):
+        RealPose = namedtuple('RealPose', ['camera_T', 'world_T'])
         def transformCoppeliaMatrix(matrix_array):
             matrix = SE3(np.array(
                 np.vstack([
@@ -132,7 +148,7 @@ class VisionNonThreaded:
                     np.array([0,0,0,1])
                 ])))
             return matrix
-        RealPose = namedtuple('RealPose', ['camera_T', 'world_T'])
+        
         try:
             marker_camera_T = transformCoppeliaMatrix(
                 self.sim.getObjectMatrix(self.sim.getObject(f'./marker{marker_id}'), self.sim.getObject('./cameraFrame'))
@@ -146,67 +162,71 @@ class VisionNonThreaded:
         return real_pose
     
     def estimateArucoPose(self):
-        marker = self.aruco_markers[0]
-        if len(self.aruco_markers) > 0:
-            rmat, _ = cv2.Rodrigues(marker.rvec)
+        if self.proximity_handle is None or (self.sim.readProximitySensor(self.proximity_handle)[0] == 1 and math.isclose(self.sim.readCustomTableData(self.conveyor_handle,'__state__')['vel'], 0, abs_tol=0.0001)):
+            marker = self.aruco_markers[0]
+            if len(self.aruco_markers) > 0 and hasattr(marker, 'rvec'): # If markers are detected
+                rmat, _ = cv2.Rodrigues(marker.rvec)
 
-            # Matriz de transformação da câmera para o sistema do marcador
-            object_camera_T = SE3(np.vstack([np.hstack([rmat, np.reshape(marker.tvec,(3,1))]), np.array([0, 0, 0, 1])]))
+                # Marker pose to camera frame
+                object_camera_T = SE3(np.vstack([np.hstack([rmat, np.reshape(marker.tvec,(3,1))]), np.array([0, 0, 0, 1])]))
 
-            # Matriz de transformação do marcador para o sistema global
-            object_world_T = SE3(self.camera_extrinsic@object_camera_T.A)
-            
-            self.aruco_markers[0].object_world_T = object_world_T
+                # Marker pose to world frame
+                object_world_T = SE3(self.camera_extrinsic@object_camera_T.A)
+                
+                self.aruco_markers[0].object_world_T = object_world_T
 
-            real_pose = self.getArucoRealPose(marker.id)
-            Settings.log(f'========== ID: {marker.id}__Color: {marker.color} ============')
-            Settings.log('---------- Object to camera ------------')
-            Settings.log('---------- r ------------')
-            Settings.log('Estimated:', object_camera_T.rpy())
-            Settings.log('Real:', real_pose.camera_T.rpy())
-            Settings.log('Error:', meanSquareError(object_camera_T.rpy(), real_pose.camera_T.rpy()))
-            Settings.log('---------- t ------------')
-            Settings.log('Estimated:', object_camera_T.t)
-            Settings.log('Real:', real_pose.camera_T.t)
-            Settings.log('Error:', meanSquareError(object_camera_T.t, real_pose.camera_T.t))               
-            Settings.log('---------- Object to world ------------')
-            Settings.log('---------- r ------------')
-            Settings.log('Estimated:', object_world_T.rpy())
-            Settings.log('Real:', real_pose.world_T.rpy())
-            Settings.log('Error:', meanSquareError(object_world_T.rpy(), real_pose.world_T.rpy()))
-            Settings.log('---------- t ------------')
-            Settings.log('Estimated:', object_world_T.t)
-            Settings.log('Real:', real_pose.world_T.t)
-            Settings.log('Error:', meanSquareError(object_world_T.t, real_pose.world_T.t))
+                real_pose = self.getArucoRealPose(marker.id)
+                Settings.log(f'========== ID: {marker.id}__Color: {marker.color} ============')
+                Settings.log('---------- Object to camera ------------')
+                Settings.log('---------- r ------------')
+                Settings.log('Estimated:', object_camera_T.rpy())
+                Settings.log('Real:', real_pose.camera_T.rpy())
+                Settings.log('Error:', meanSquareError(object_camera_T.rpy(), real_pose.camera_T.rpy()))
+                Settings.log('---------- t ------------')
+                Settings.log('Estimated:', object_camera_T.t)
+                Settings.log('Real:', real_pose.camera_T.t)
+                Settings.log('Error:', meanSquareError(object_camera_T.t, real_pose.camera_T.t))               
+                Settings.log('---------- Object to world ------------')
+                Settings.log('---------- r ------------')
+                Settings.log('Estimated:', object_world_T.rpy())
+                Settings.log('Real:', real_pose.world_T.rpy())
+                Settings.log('Error:', meanSquareError(object_world_T.rpy(), real_pose.world_T.rpy()))
+                Settings.log('---------- t ------------')
+                Settings.log('Estimated:', object_world_T.t)
+                Settings.log('Real:', real_pose.world_T.t)
+                Settings.log('Error:', meanSquareError(object_world_T.t, real_pose.world_T.t))
 
-    def getTarget(self, robot):
-        marker = self.aruco_markers[0]
-        TimedTarget = namedtuple('PickPlace', ['t', 'Target'])
-        if len(self.aruco_markers) > 0:
-            bin = bins[marker.color]
-            bin.shape_path = f'./{marker.color}{marker.id}'
-            pick_and_place = [
-                TimedTarget(Settings.t, Target(
-                    x = marker.object_world_T.t[0], 
-                    y = marker.object_world_T.t[1], 
-                    z = marker.object_world_T.t[2] + Settings.target_increase_height, 
-                    rpy = marker.object_world_T.rpy(), 
-                    r_xyz = None,
-                    gripperActuation = None, 
-                    shape_path = None
-                )),
-                TimedTarget(np.arange(0, 2 + Settings.Ts, Settings.Ts), Target(
-                    x = marker.object_world_T.t[0], 
-                    y = marker.object_world_T.t[1], 
-                    z = marker.object_world_T.t[2], 
-                    rpy = marker.object_world_T.rpy(), 
-                    r_xyz = None,
-                    gripperActuation = 'close', 
+    def getTarget(self):
+        if self.proximity_handle is None or (self.sim.readProximitySensor(self.proximity_handle)[0] == 1 and math.isclose(self.sim.readCustomTableData(self.conveyor_handle,'__state__')['vel'], 0, abs_tol=0.0001)):
+            marker = self.aruco_markers[0]
+            if len(self.aruco_markers) > 0 and hasattr(marker, 'object_world_T'):
+                bin = bins[marker.color]
+                bin.Gripper_actuation = Actuation(
+                    actuation = 'open', 
                     shape_path = f'./{marker.color}{marker.id}'
-                )),
-                TimedTarget(Settings.t, bin)
-            ]
-        return pick_and_place
+                )
+                pick_and_place = [
+                    Target(
+                        x = marker.object_world_T.t[0], 
+                        y = marker.object_world_T.t[1], 
+                        z = marker.object_world_T.t[2] + Settings.target_increase_height, 
+                        rpy = marker.object_world_T.rpy()
+                    ),
+                    Target(
+                        x = marker.object_world_T.t[0], 
+                        y = marker.object_world_T.t[1], 
+                        z = marker.object_world_T.t[2], 
+                        rpy = marker.object_world_T.rpy(),
+                        gripper_actuation = Actuation(
+                            actuation = 'close', 
+                            shape_path = f'./{marker.color}{marker.id}'
+                        )
+                    ),
+                    bin
+                ]
+            return pick_and_place
+        else:
+            return [None, None, None]
 
 class ArucoMarker():
     def __init__(self, corners, id, color) -> None:

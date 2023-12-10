@@ -1,6 +1,21 @@
+from settings import Settings
+
+class Actuation:
+    def __init__(self, actuation: str = None, shape_path: str = None) -> None:
+        if actuation == 'close':
+            self.close = True
+        elif actuation == 'open':
+            self.close = False
+        else:
+            self.close = None
+        self.shape_path = shape_path
+    
+    def log(self):
+        return self.__dict__
+
 class RobotiqGripper:
     def __init__(self, client, sim):
-        print('Init Gripper...')
+        Settings.log('Init Gripper...')
         self.client = client
         self.sim = sim
         self.simIK = self.client.getObject('simIK')
@@ -24,14 +39,18 @@ class RobotiqGripper:
         self.connector = self.sim.getObject('./attachPoint')
         self.object_sensor = self.sim.getObject('./attachProxSensor')
     
-    def setActuationType(self, close, shape_path = './Cuboid'):
-        self.close = close
-        shape = self.sim.getObject(shape_path)
+    def setupActuation(self, actuation: Actuation):
+        self.close = actuation.close
+        shape = self.sim.getObject(actuation.shape_path)
         if self.close:
             if self.sim.checkProximitySensor(self.object_sensor, shape)[0] == 1:
                 self.sim.setObjectParent(shape, self.connector, True)
+                return True
+            else:
+                return False
         else:
             self.sim.setObjectParent(shape, -1, True)
+        return True
     
     def actuation(self):
         p1 = self.sim.getJointPosition(self.j1)
@@ -56,7 +75,7 @@ class RobotiqGripper:
             
 class GripperChildScript:
     def __init__(self, client, sim, gripper_name = './ROBOTIQ85'):
-        print('Init Gripper...')
+        Settings.log('Init Gripper...')
         self.client = client
         self.sim = sim
         

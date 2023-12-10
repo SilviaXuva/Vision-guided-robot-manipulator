@@ -1,20 +1,28 @@
-from Kinematics.control import isClose, inverseDifferentialKinematics, cartesianSpaceController, jointSpaceController
-from Kinematics.trajectoryPlanning import TrajectoryPlanning
+from settings import Settings
+from Kinematics.control import isClose, inverseDifferentialKinematics, cartesianSpaceController, jointSpaceController, Controller
+from Kinematics.trajectoryPlanning import Trajectory, TrajectoryPlanning
 from Kinematics.measures import Real, Ref, poseToCart
 from CoppeliaSim.robotSimulator import RobotSimulator
+from CoppeliaSim.gripper import Actuation
+from Models.DH_LBR_iiwa import LBR_iiwa
 from Data.plotOutputs import plotOutputs
-from Models import DH_LBR_iiwa as LBR_iiwa
+
 import numpy as np
 from spatialmath import SE3
-from settings import Settings
+import roboticstoolbox as rtb
 
 from Data.targets import bins
-from Data.ma import green, blue, red
+from Data.openLoop import green, blue, red
 
 robot = LBR_iiwa()
 robot.Coppelia = RobotSimulator(robot, scene = 'main_scene.ttt', drawing = True, gripper = False, vision = False)
 
 robot.Coppelia.start()
+
+green.Gripper_actuation = Actuation(actuation = 'close', shape_path = './green1')
+green.Trajectory = Trajectory(type = 'joint', source = 'rtb', t = np.arange(0, 10+Settings.Ts, Settings.Ts))
+green.Controller = Controller(type = 'cart', Kp = np.array([8, 8, 8, 6, 6, 6]))
+green.tolerance = np.array([[0.01]])
 
 targets = [green]
 for i, target in enumerate(targets):
@@ -22,28 +30,35 @@ for i, target in enumerate(targets):
     target.q0 = robot.Coppelia.getJointsPosition()
     target.T0 = robot.fkine(target.q0)
 
-    target.traj = TrajectoryPlanning(robot, target.q0, target.T, Settings.Trajectory)
+    target.traj = TrajectoryPlanning(robot, target)
 
-    for q_ref, q_dot_ref, q_dot_dot_ref, x_ref, x_dot_ref, x_dot_dot_ref in zip(target.traj.q, target.traj.q_dot, target.traj.q_dot_dot, target.traj.x, target.traj.x_dot, target.traj.x_dot_dot):
+    for j, [T_ref, q_ref, q_dot_ref, q_dot_dot_ref, x_ref, x_dot_ref, x_dot_dot_ref] in enumerate(zip(target.traj.T, target.traj.q, target.traj.q_dot, target.traj.q_dot_dot, target.traj.x, target.traj.x_dot, target.traj.x_dot_dot)):
+        if j >= 190:
+            pass
         q = robot.Coppelia.getJointsPosition()
-        if isClose(robot, target.T, q):
-            print(f'End-Effector is close to target {i+1}')
+        if isClose(robot, target.T, q, target.tolerance):
+            Settings.log(f'End-Effector is close to target {i+1}')
             break
 
         if q_ref is None:
             q_ref = robot.ikine_LMS(SE3.Trans(x_ref[:3])*SE3.Eul(x_ref[3:])).q
 
-        if Settings.Controller.type == 'cart':
-            q_control, q_dot_control = cartesianSpaceController(robot, x_ref, x_dot_ref, q)
-        elif Settings.Controller.type == 'joint':
-            q_control, q_dot_control = jointSpaceController(robot, q_ref, x_dot_ref, q)
-        elif Settings.Controller.type is None:
-            q_dot_control = inverseDifferentialKinematics(robot, q, x_dot_ref)
+        if target.Controller.type == 'cart':
+            q_control, q_dot_control = cartesianSpaceController(robot, target.Controller.Kp, q, T_ref, None)
+        elif target.Controller.type == 'joint':
+            q_control, q_dot_control = jointSpaceController(robot, target.Controller.Kp, q_ref, x_dot_ref, q)
+        elif target.Controller.type is None:
+            q_dot_control = inverseDifferentialKinematics(robot, q, control_signal = x_dot_ref)
+        elif target.Controller.type == 'servo':
+            v, arrived = rtb.p_servo(robot.fkine(q), T_ref, target.Controller.Kp)
+            q_dot_control = inverseDifferentialKinematics(robot, q, control_signal = v)
+            q_control = q + q_dot_control*Settings.Ts
+
         robot.Coppelia.setJointsTargetVelocity(q_dot_control)
-        robot.Coppelia.step(x_ref[:3])
+        robot.Coppelia.step(T_ref.t)
         target.measures.append([
-            Real(q_control, q_dot_control, None, poseToCart(robot.fkine(q_control)), None, None),
-            Ref(q_ref, q_dot_ref, q_dot_dot_ref, x_ref, x_dot_ref, x_dot_dot_ref)
+            Real(robot.fkine(q_control), q_control, q_dot_control, None, poseToCart(robot.fkine(q_control)), None, None),
+            Ref(T_ref, q_ref, q_dot_ref, q_dot_dot_ref, x_ref, x_dot_ref, x_dot_dot_ref)
         ])
 
     target.saveData(robot)

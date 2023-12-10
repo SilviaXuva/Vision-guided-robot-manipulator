@@ -1,4 +1,6 @@
-def meanSquareError(x, y):
+import numpy as np
+
+def meanSquareError(x: np.ndarray, y: np.ndarray):
     summation = 0  #variable to store the summation of differences
     n = len(x) #finding total number of items in list
     for i in range (0,n):  #looping through each element of the list

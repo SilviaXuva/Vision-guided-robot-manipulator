@@ -1,11 +1,14 @@
-from Kinematics import TrajectoryPlanning, isClose, inverseDifferentialKinematics, cartesianSpaceController, jointSpaceController, Real, Ref, poseToCart
+from settings import Settings
+from Kinematics.control import isClose, inverseDifferentialKinematics, cartesianSpaceController, jointSpaceController
+from Kinematics.trajectoryPlanning import TrajectoryPlanning
+from Kinematics.measures import Real, Ref, poseToCart
 from CoppeliaSim.robotSimulator import RobotSimulator
-from Models import DH_LBR_iiwa as LBR_iiwa
-from Data import plotOutputs
-import numpy as np
+from Models.DH_LBR_iiwa import LBR_iiwa
+from Data.plotOutputs import plotOutputs
+from Data.targets import setupTrajControl
+
 from spatialmath import SE3
-from settings import Settings, Trajectory, Controller
-from Kinematics import getDot
+import numpy as np 
 
 robot = LBR_iiwa()
 robot.Coppelia = RobotSimulator(robot, drawing = True, gripper = True, vision = True)
@@ -15,72 +18,58 @@ robot.Coppelia.start()
 while len(robot.Coppelia.Vision.aruco_markers) > 0:
     robot.Coppelia.step()
     robot.Coppelia.Vision.estimateArucoPose()
-    align_target, pick_target, place_target = robot.Coppelia.Vision.getTarget(robot)
+    pick_place = align, pick, place = robot.Coppelia.Vision.getTarget()
 
-    for i, [t, target] in enumerate([align_target, pick_target, place_target]):
-        robot.Coppelia.step()
-        q_ref0 = target.q0 = robot.Coppelia.getJointsPosition()
-        target.T0 = robot.fkine(target.q0)
+    if np.any(pick_place):
+        align, pick, place = setupTrajControl(align, pick, place)
 
-        if i == 0:
-            control = Settings.Controller
-            traj = Settings.Trajectory
-            tol_trans = 0.05; tol_rot = 0.2
-        elif i == 1:
-            control = Controller('cart', [8,6])
-            traj = Settings.Trajectory
-            tol_trans = Settings.Tolerance.tol_trans; tol_rot = Settings.Tolerance.tol_trans
-        elif i == 3:
-            control = Settings.Controller
-            traj = Settings.Trajectory
-            tol_trans = 0.05; tol_rot = 0.2
+        for i, target in enumerate([align, pick, place]):
+            robot.Coppelia.step()
+            target.q0 = robot.Coppelia.getJointsPosition()
+            target.T0 = robot.fkine(target.q0)
 
-        target.traj = TrajectoryPlanning(robot, target.q0, target.T, t, traj)
+            target.traj = TrajectoryPlanning(robot, target)
 
-        for j, [q_ref, q_dot_ref, q_dot_dot_ref, x_ref, x_dot_ref, x_dot_dot_ref] in enumerate(zip(target.traj.q, target.traj.q_dot, target.traj.q_dot_dot, target.traj.x, target.traj.x_dot, target.traj.x_dot_dot)):
-            q = robot.Coppelia.getJointsPosition()
+            for j, [T_ref, q_ref, q_dot_ref, q_dot_dot_ref, x_ref, x_dot_ref, x_dot_dot_ref] in enumerate(zip(target.traj.T, target.traj.q, target.traj.q_dot, target.traj.q_dot_dot, target.traj.x, target.traj.x_dot, target.traj.x_dot_dot)):
+                q = robot.Coppelia.getJointsPosition()
+                if isClose(robot, target.T, q, target.tolerance):
+                    Settings.log(f'End-Effector is close to target {i+1}')
+                    break
 
-            if next(i for i, x in enumerate(target.traj.q) if np.array_equal(x, q_ref)) >= 103:
-                pass
-        
-            if j >= 190:
-                pass
+                if q_ref is None:
+                    q_ref = robot.ikine_LMS(SE3.Trans(x_ref[:3])*SE3.Eul(x_ref[3:])).q
 
-            if isClose(robot, target.T, q, tol_trans=tol_trans, tol_rot=tol_rot):
-                print(f'End-Effector is close to target {i+1}')
-                break
+                if target.Controller.type == 'cart':
+                    q_control, q_dot_control = cartesianSpaceController(robot, target.Controller.Kp, q, T_ref, None)
+                elif target.Controller.type == 'joint':
+                    q_control, q_dot_control = jointSpaceController(robot, target.Controller.Kp, q_ref, x_dot_ref, q)
+                elif target.Controller.type is None:
+                    q_dot_control = inverseDifferentialKinematics(robot, q, control_signal = x_dot_ref)
 
-            if q_ref is None:
-                q_ref = robot.ikine_LMS(SE3.Trans(x_ref[:3])*SE3.Eul(x_ref[3:])).q 
-                q_dot_ref = getDot(q_ref, q_ref0)
-                q_ref0 = q_ref
+                robot.Coppelia.setJointsTargetVelocity(q_dot_control)
+                robot.Coppelia.step(T_ref.t)
+                target.measures.append([
+                    Real(robot.fkine(q_control), q_control, q_dot_control, None, poseToCart(robot.fkine(q_control)), None, None),
+                    Ref(T_ref, q_ref, q_dot_ref, q_dot_dot_ref, x_ref, x_dot_ref, x_dot_dot_ref)
+                ])
 
-            if Settings.Controller.type == 'cart':
-                q_control, q_dot_control = cartesianSpaceController(robot, x_ref, x_dot_ref, q, q_dot_ref)
-            elif Settings.Controller.type == 'joint':
-                q_control, q_dot_control = jointSpaceController(robot, q_ref, x_dot_ref, q, q_dot_ref)
-            elif Settings.Controller.type is None:
-                q_dot_control = q_dot_ref
-                # q_dot_control = inverseDifferentialKinematics(robot, q, x_dot_ref)
-                q_control = q + q_dot_control*Settings.Ts
+            target.saveData(robot)
             
-            robot.Coppelia.setJointsTargetVelocity(q_dot_control)
-            robot.Coppelia.step(x_ref[:3])
-            target.measures.append([
-                Real(q_control, q_dot_control, None, poseToCart(robot.fkine(q_control)), None, None),
-                Ref(q_ref, q_dot_ref, q_dot_dot_ref, x_ref, x_dot_ref, x_dot_dot_ref)
-            ])
+            robot.Coppelia.setJointsTargetVelocity([0,0,0,0,0,0,0])
+            robot.Coppelia.step()
 
-        target.saveData(robot)
-        robot.Coppelia.setJointsTargetVelocity([0,0,0,0,0,0,0])
-        robot.Coppelia.step()
-
-        if hasattr(robot.Coppelia, 'Gripper') and target.close_gripper is not None:
-            robot.Coppelia.Gripper.setActuationType(target.close_gripper, shape_path = target.shape_path)
-            start_time = robot.Coppelia.sim.getSimulationTime()
-            while robot.Coppelia.sim.getSimulationTime() - start_time < 2:
-                robot.Coppelia.step()
-                robot.Coppelia.Gripper.actuation()
+            if hasattr(robot.Coppelia, 'Gripper') and target.Gripper_actuation.close is not None:
+                success = robot.Coppelia.Gripper.setupActuation(target.Gripper_actuation)
+                if success:
+                    start_time = robot.Coppelia.sim.getSimulationTime()
+                    while robot.Coppelia.sim.getSimulationTime() - start_time < 2:
+                        robot.Coppelia.step()
+                        robot.Coppelia.Gripper.actuation()
+            else:
+                success = True
+        
+            if not success:
+                break
 
 robot.Coppelia.stop()
 

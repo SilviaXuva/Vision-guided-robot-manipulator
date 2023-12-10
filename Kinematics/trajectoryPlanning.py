@@ -1,41 +1,61 @@
-# import matplotlib.pyplot as plt
-# import os
-# import pandas as pd
-import numpy as np
-import roboticstoolbox as rtb
-from spatialmath import SE3
 from settings import Settings
-from Kinematics.measures import Ref, Real, getDot, poseToCart
+from Kinematics.measures import Ref, getDot, poseToCart, cartToPose
+
+import numpy as np
+from spatialmath import SE3
+import roboticstoolbox as rtb
+from roboticstoolbox import DHRobot, ERobot
 
 class CartesianTrajectory(Ref):
-    def __init__(self, x, x_dot, x_dot_dot) -> None:
+    def __init__(self, robot, q0, T, x, x_dot = None, x_dot_dot = None) -> None:
+        if x_dot is None:
+            x_dot = getDot(x, poseToCart(robot.fkine(q0)))
+        if x_dot_dot is None:
+            x_dot_dot = getDot(x_dot, poseToCart(robot.fkine(q0)))
         q = q_dot = q_dot_dot = [None for _ in x]
-        super().__init__(q, q_dot, q_dot_dot, x, x_dot, x_dot_dot)
+        super().__init__(T, q, q_dot, q_dot_dot, x, x_dot, x_dot_dot)
 
 class JointTrajectory(Ref):
-    def __init__(self, robot, q0, q, q_dot, q_dot_dot) -> None:
+    def __init__(self, robot, q0, T, q, q_dot, q_dot_dot) -> None:
+        if T is None:
+            T = [robot.fkine(q) for q in q]
         x = [poseToCart(robot.fkine(q)) for q in q]
         x_dot = getDot(x, poseToCart(robot.fkine(q0)))
         x_dot_dot = getDot(x_dot, poseToCart(robot.fkine(q0)))
-        super().__init__(q, q_dot, q_dot_dot, x, x_dot, x_dot_dot)
+        super().__init__(T, q, q_dot, q_dot_dot, x, x_dot, x_dot_dot)
 
-def TrajectoryPlanning(robot, q0, T1, t, trajectory):
-    if trajectory.type == 'cart':
-        if trajectory.source == 'rtb':
-            traj = rtb.ctraj(robot.fkine(q0), T1, t) # Calculate reference cartesian/end-effector trajectory
-            x_ref = [poseToCart(SE3(T_ref)) for T_ref in traj.A]
-            x_dot_ref = getDot(x_ref, poseToCart(robot.fkine(q0)))
-            x_dot_dot_ref = getDot(x_dot_ref, poseToCart(robot.fkine(q0)))
-        elif trajectory.source == 'custom':
-            x_ref, x_dot_ref, x_dot_dot_ref = quinticEndEffectorTraj(robot.fkine(q0), T1, t) # Calculate reference cartesian/end-effector trajectory
-        traj = CartesianTrajectory(x_ref, x_dot_ref, x_dot_dot_ref)
+class Trajectory:
+    def __init__(self, type: str = 'joint', source: str = 'rtb', t: np.ndarray = np.arange(0, Settings.T_tol + Settings.Ts, Settings.Ts)) -> None:
+        self.type = type
+        self.source = source
+        self.t = t
+    
+    def log(self):
+        return dict({(k):({'t0':v[0], 't1':v[-1], 'Ts': v[1]-v[0], 't_len': len(v)} if k == 't' else v) for k,v in self.__dict__.items()})
+
+def TrajectoryPlanning(robot: DHRobot|ERobot, target): 
+    if target.Trajectory.type == 'cart':
+        if target.Trajectory.source == 'rtb':
+            traj = rtb.ctraj(robot.fkine(target.q0), target.T, target.Trajectory.t) # Calculate reference cartesian/end-effector trajectory
+            x_ref = [poseToCart(SE3(T_ref)) for T_ref in traj.A]; x_dot_ref = None; x_dot_dot_ref = None
+            T_ref = [SE3(arr) for arr in traj.A]
+        elif target.Trajectory.source == 'custom':
+            x_ref, x_dot_ref, x_dot_dot_ref = quinticEndEffectorTraj(robot.fkine(target.q0), target.T, target.Trajectory.t) # Calculate reference cartesian/end-effector trajectory
+            T_ref = [cartToPose(x) for x in x_ref]
+        traj = CartesianTrajectory(robot, target.q0, T_ref, x_ref, x_dot_ref, x_dot_dot_ref)
     else:
-        if trajectory.source == 'rtb':
-            traj = rtb.jtraj(q0, robot.ikine_LMS(T1).q, t)  # Calculate reference joints trajectory
+        if target.Trajectory.source == 'rtb':
+            traj = rtb.jtraj(target.q0, robot.ikine_LMS(target.T).q, target.Trajectory.t)  # Calculate reference joints trajectory
             q_ref = traj.q; q_dot_ref = traj.qd; q_dot_dot_ref = traj.qdd
-        elif trajectory.source == 'custom':
-            q_ref, q_dot_ref, q_dot_dot_ref = quinticJointTraj(q0, robot.ikine_LMS(T1).q, t)  # Calculate reference joints trajectory
-        traj = JointTrajectory(robot, q0, q_ref, q_dot_ref, q_dot_dot_ref)
+        elif target.Trajectory.source == 'custom':
+            q_ref, q_dot_ref, q_dot_dot_ref = quinticJointTraj(target.q0, robot.ikine_LMS(target.T).q, target.Trajectory.t)  # Calculate reference joints trajectory
+        traj = JointTrajectory(robot, target.q0, None, q_ref, q_dot_ref, q_dot_dot_ref)
+
+    Settings.log('Target:', target.T.A, 'rpy', target.T.rpy())
+    Settings.log('Gripper:', target.Gripper_actuation.log())
+    Settings.log('Controller:', target.Controller.log())
+    Settings.log('Trajectory:', target.Trajectory.log())
+    Settings.log('Tolerance:', target.tolerance)     
 
     return traj
 

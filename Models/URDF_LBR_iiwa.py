@@ -1,3 +1,5 @@
+from settings import Settings
+
 import numpy as np
 from roboticstoolbox.models.URDF.LBR import LBR
 
@@ -12,7 +14,6 @@ class LBR_iiwa(LBR):
 
         >>> from Models.URDF_LBR_iiwa import LBR_iiwa
         >>> robot = LBR_iiwa()
-        >>> print(robot)
 
     Defined joint configurations are:
 

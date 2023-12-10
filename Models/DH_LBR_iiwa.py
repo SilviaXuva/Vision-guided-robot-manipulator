@@ -1,6 +1,8 @@
+from settings import Settings
+from Data.targets import Target
+
 import numpy as np
 from roboticstoolbox import DHRobot, RevoluteDH
-from Data.targets import Target
 
 class LBR_iiwa(DHRobot):
     """Class that models a LBR iiwa 14R 820 manipulator
@@ -13,7 +15,6 @@ class LBR_iiwa(DHRobot):
 
         >>> from Models.DH_LBR_iiwa import LBR_iiwa
         >>> robot = LBR_iiwa(np.array([0,0,0,0,0,0,0,0]))
-        >>> print(robot)
 
     Defined joint configurations are:
 
@@ -51,9 +52,7 @@ class LBR_iiwa(DHRobot):
         Tr = self.fkine(self.qr)
         self.Tr = Target(
             x = Tr.t[0], y = Tr.t[1], z = Tr.t[2], 
-            rpy = Tr.rpy(), 
-            gripperActuation = None, 
-            shape_path = None
+            rpy = Tr.rpy()
         )
         self.qz = np.array(
             [
@@ -69,9 +68,7 @@ class LBR_iiwa(DHRobot):
         Tz = self.fkine(self.qz)
         self.Tz = Target(
             x = Tz.t[0], y = Tz.t[1], z = Tz.t[2], 
-            rpy = Tz.rpy(), 
-            gripperActuation = None, 
-            shape_path = None
+            rpy = Tz.rpy()
         )
 
         self.addconfiguration("qr", self.qr)
@@ -83,4 +80,4 @@ class LBR_iiwa(DHRobot):
 if __name__ == "__main__":  # pragma nocover
 
     robot = LBR_iiwa()
-    print(robot)
+    Settings.log(robot)

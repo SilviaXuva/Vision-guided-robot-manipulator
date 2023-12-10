@@ -1,9 +1,10 @@
+from VisionProcessing.filters import getContours
+from VisionProcessing.guiFeatures import white, writeText, drawingCircle, drawingContours
+
 import cv2
 import numpy as np
-from VisionProcessing.filters import getContours
-from VisionProcessing.gui_features import white, writeText, drawingCircle, drawingContours
 
-def drawEachContourAndCenter(img, filtered):
+def drawEachContourAndCenter(img: np.ndarray, filtered: np.ndarray):
     img = img.copy()
     cnts = getContours(filtered)
     for c in cnts:
@@ -17,7 +18,7 @@ def drawEachContourAndCenter(img, filtered):
     return img
 
 # Shapes detection based on ratio
-def matchShapes(img, filtered, draw = True):
+def matchShapes(img: np.ndarray, filtered: np.ndarray, draw: bool = True):
     cnts = getContours(filtered)
     if draw:
         img = drawEachContourAndCenter(img, filtered)

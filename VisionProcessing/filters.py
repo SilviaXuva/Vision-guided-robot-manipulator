@@ -1,8 +1,9 @@
+from settings import Settings
+from VisionProcessing.guiFeatures import drawingCircle, pink
+
 import cv2
 import numpy as np
 import os
-from settings import Settings
-from VisionProcessing.gui_features import drawingCircle, pink
 
 if os.path.isfile(Settings.pre_processing_parameters_path):
     data = np.load(Settings.pre_processing_parameters_path)
@@ -23,29 +24,29 @@ else:
     }
 
 # ============== Blur ===================
-def getBlur(img, ksize = data["blur_ksize"], sigmaX = data["blur_sigmax"]):
-    blur = cv2.GaussianBlur(img, ksize, sigmaX)
+def getBlur(img: np.ndarray, ksize: tuple = data["blur_ksize"], sigmax: int = data["blur_sigmax"]):
+    blur = cv2.GaussianBlur(img, ksize = ksize, sigmaX = sigmax)
     return blur
 
 # ============== Canny ===================
-def getCanny(img, threshold1 = data["canny_a"], threshold2 = data["canny_b"]):
-    canny = cv2.Canny(img, threshold1, threshold2)
+def getCanny(img: np.ndarray, threshold1: int = data["canny_a"], threshold2: int = data["canny_b"]):
+    canny = cv2.Canny(img, threshold1 = threshold1, threshold2 = threshold2)
     return canny
     
 # ============== Threshold ===================
-def getThreshold(img, thresh = data["thresh_thresh"], maxval = data["thresh_maxval"], type = cv2.THRESH_BINARY):
-    ret, threshold = cv2.threshold(img, thresh, maxval, type)
+def getThreshold(img: np.ndarray, thresh: int = data["thresh_thresh"], maxval: int = data["thresh_maxval"], type: int = cv2.THRESH_BINARY):
+    ret, threshold = cv2.threshold(img, thresh = thresh, maxval = maxval, type = type)
     return threshold
 
 # ============== Contours ===================
-def getContours(img, mode = 1, method = 2):
-    contours = cv2.findContours(img, mode, method)
+def getContours(img: np.ndarray, mode: int = 1, method: int = 2):
+    contours = cv2.findContours(img, mode = mode, method = method)
     cnts = contours[0] if len(contours) == 2 else contours[1]
     return cnts
 
 # ============== Corners By Good Features ===================
-def getCornersByGoodFeatures(img, filtered, draw = False, maxCorners = data["corners_gf_maxcorners"], qualityLevel = data["corners_gf_qualitylevel"], minDistance = data["corners_gf_mindistance"]):
-    corners = cv2.goodFeaturesToTrack(filtered, maxCorners, qualityLevel, minDistance)
+def getCornersByGoodFeatures(img: np.ndarray, filtered: np.ndarray, draw: bool = False, max_corners: int = data["corners_gf_maxcorners"], quality_level: float = data["corners_gf_qualitylevel"], min_distance: float = data["corners_gf_mindistance"]):
+    corners = cv2.goodFeaturesToTrack(filtered, maxCorners = max_corners, qualityLevel = quality_level, minDistance = min_distance)
     if draw:
         img = img.copy()
         try:
@@ -59,15 +60,15 @@ def getCornersByGoodFeatures(img, filtered, draw = False, maxCorners = data["cor
     return corners, img
 
 # ============== Corners By Harris ===================
-def getCornersByHarris(img, filtered, draw = False, blockSize = data["corners_h_blocksize"], ksize = data["corners_h_ksize"], k = data["corners_h_k"]):
-    dst = cv2.cornerHarris(np.float32(filtered), blockSize, ksize, k)
+def getCornersByHarris(img: np.ndarray, filtered: np.ndarray, draw: bool = False, block_size: int = data["corners_h_blocksize"], ksize: int = data["corners_h_ksize"], k: float = data["corners_h_k"]):
+    dst = cv2.cornerHarris(np.float32(filtered), blockSize = block_size, ksize = ksize, k = k)
     if draw:
         img[dst > 0.01 * dst.max()] = pink
     return dst, img
 
 # ============== Refine Corners ===================
-def refineCorners(img, corners, winSize = (11, 11), zeroZone = (-1, -1), criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)):
-    corners = cv2.cornerSubPix(img, corners, winSize, zeroZone, criteria)
+def refineCorners(img: np.ndarray, corners: np.ndarray, win_size: tuple(int) = (11, 11), zero_zone: tuple(int) = (-1, -1), criteria: tuple(int, float) = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)):
+    corners = cv2.cornerSubPix(img, corners, winSize = win_size, zeroZone = zero_zone, criteria = criteria)
     return corners
 
 # ============== Not working ===================
