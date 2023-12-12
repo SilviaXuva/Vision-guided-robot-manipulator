@@ -1,10 +1,10 @@
-import cv2
-from datetime import datetime
-import numpy as np
-import os
 import sys
+import numpy as np
 import json
-from spatialmath import SE3, SO3
+import os
+from datetime import datetime
+from spatialmath import SE3
+import cv2
 
 class Logger(object):
     def __init__(self, folder):
@@ -25,49 +25,53 @@ class Logger(object):
                 try:
                     message[i] = str(msg)
                 except Exception as e:
-                    Settings.log(e)
-        self.terminal.write('\n'.join(message) + '\n')
+                    Settings.Log(e)
+        print('\n'.join(message))
         self.file.write('\n'.join(message) + '\n')
         self.file.flush()
         os.fsync(self.file.fileno())
 
+class Settings:
+    outputPath = os.path.abspath('.\Outputs')
+    startTime = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
+    executionPath = fr'{outputPath}\{startTime}'
+    os.makedirs(executionPath, exist_ok=True)
+    Log = Logger(executionPath)
+    logPath = fr'{executionPath}\output.log'
+    Ts = 0.05
+    Ttol = 10
+    
+class Cuboids:
+    path = './ref_cuboid'
+    bodyPath = './ref_body'
+    markerPath = './ref_marker{id}'
+
+class ProximitySensor:
+    path = './proximitySensor'
+
+class Conveyor:
+    path = './conveyor'
+
 class Camera:
-    def __init__(self, sensor_object='./camera1', distortion_coefficients=None, frame_rotation = SE3.Rz(np.pi)) -> None:
-        self.sensor_object = sensor_object
-        if distortion_coefficients is None:
-            self.distortion_coefficients = None
-        else:
-            self.distortion_coefficients = np.array(distortion_coefficients)
-        self.frame_rotation = frame_rotation
+    sensorPath = './camera1'
+    distortionCoefficients = None #np.array(distortionCoefficients)
+    frameRotation = SE3.Rz(np.pi)
+    preProcessingParametersPath = ''
 
 class Aruco:
-    def __init__(self, aruco_dict=cv2.aruco.DICT_6X6_250, length=0.05) -> None:
-        aruco_dict = cv2.aruco.getPredefinedDictionary(aruco_dict)
-        detect_param = cv2.aruco.DetectorParameters()
-        self.detector = cv2.aruco.ArucoDetector(aruco_dict, detect_param)
-        self.length = length
-        self.estimate_param = cv2.aruco.EstimateParameters()
-        self.estimate_param.solvePnPMethod=0
-        self.marker_points = np.array([
-            [[-length/2, length/2, 0]],
-            [[length/2, length/2, 0]],
-            [[length/2, -length/2, 0]],
-            [[-length/2, -length/2, 0]]
-        ])
+    dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
+    detectParam = cv2.aruco.DetectorParameters()
+    detector = cv2.aruco.ArucoDetector(dict, detectParam)
+    length = 0.05
+    estimateParam = cv2.aruco.EstimateParameters()
+    estimateParam.solvePnPMethod=0
+    points = np.array([
+        [[-length/2, length/2, 0]],
+        [[length/2, length/2, 0]],
+        [[length/2, -length/2, 0]],
+        [[-length/2, -length/2, 0]]
+    ])
 
-class Settings:
-    T_tol = 10
-    Ts = 0.05
-    output_path = os.path.abspath('.\Outputs')
-    start_time = datetime.now().strftime("%Y-%m-%d_%Hh%Mm%Ss")
-    execution_path = fr'{output_path}\{start_time}'
-    os.makedirs(execution_path, exist_ok=True)
-    log = Logger(execution_path)
-    log_path = fr'{execution_path}\output.log'
-    pre_processing_parameters_path = ''
-
-    Camera = Camera(sensor_object='/camera1',distortion_coefficients=None, frame_rotation = SE3.Rz(np.pi))
-    Aruco = Aruco(aruco_dict=cv2.aruco.DICT_6X6_250, length=0.05)
-    gripper_rotation = SE3.RPY([-3.141047184, -0.001486914712, 0])
-    target_increase_height = 0.15
-    plot = True
+class Gripper:
+    rotation = SE3.RPY([-np.pi, 0, 0])
+    increaseHeight = 0.15

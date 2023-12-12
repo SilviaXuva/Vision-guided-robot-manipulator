@@ -1,6 +1,3 @@
-from settings import Settings
-from Data.targets import Target
-
 import numpy as np
 from roboticstoolbox import DHRobot, RevoluteDH
 
@@ -49,11 +46,7 @@ class LBR_iiwa(DHRobot):
         DHRobot.__init__(self, L, name=self.name, manufacturer="Kuka")
 
         self.qr = np.array([0,0,0, 90*deg, 0, 90*deg,-90*deg])
-        Tr = self.fkine(self.qr)
-        self.Tr = Target(
-            x = Tr.t[0], y = Tr.t[1], z = Tr.t[2], 
-            rpy = Tr.rpy()
-        )
+        self.Tr = self.fkine(self.qr)
         self.qz = np.array(
             [
                 -0.01647629216313362, 
@@ -65,19 +58,9 @@ class LBR_iiwa(DHRobot):
                 0.017349982634186745
             ]
         )
-        Tz = self.fkine(self.qz)
-        self.Tz = Target(
-            x = Tz.t[0], y = Tz.t[1], z = Tz.t[2], 
-            rpy = Tz.rpy()
-        )
+        self.Tz = self.fkine(self.qz)
 
         self.addconfiguration("qr", self.qr)
         self.addconfiguration("qz", self.qz)
-        
-        self.number_joints = self.n
-        self.type = 'DH'
 
-if __name__ == "__main__":  # pragma nocover
-
-    robot = LBR_iiwa()
-    Settings.log(robot)
+        self.q = self.qz

@@ -1,19 +1,20 @@
-from Data.targets import Target
+from Data.pose import Pose
+from VisionProcessing.aruco import Marker
 
 import numpy as np
 
 deg = np.pi/180
-green = Target(
-    x = +0.600, y = 0.2, z = 0.225,
+green = Marker(None, 1, 'green', T = Pose(
+    x = 0.600, y = 0.15, z = 0.525,
     r_xyz = [0, 0, 0]
-)
+))
 
-blue = Target(
-    x = +0.600, y = 0, z = 0.225, 
+blue = Marker(None, 2, 'blue', T = Pose(
+    x = 0.600, y = 0, z = 0.525, 
     r_xyz = [0, 0, 0]
-)
+))
 
-red = Target(
-    x = +0.600, y = -0.2, z = 0.225,
+red = Marker(None, 3, 'red', T = Pose(
+    x = 0.600, y = -0.15, z = 0.525,
     r_xyz = [0, 0, 60*deg]
-)
+))
