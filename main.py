@@ -73,5 +73,5 @@ while len(robot.Coppelia.Vision.aruco_markers) > 0:
 
 robot.Coppelia.stop()
 
-if Settings.plot:
-    plotOutputs(robot.number_joints, folder = Settings.execution_path)
+# if Settings.plot:
+#     plotOutputs(robot.number_joints, folder = Settings.execution_path)
