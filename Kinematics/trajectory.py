@@ -1,22 +1,25 @@
 from Data.transformations import PoseToCart, CartToPose, GetDot
 
-import numpy as np
-from roboticstoolbox.tools.trajectory import jtraj, ctraj
-from roboticstoolbox import DHRobot, ERobot
-from spatialmath import SE3
 from collections import namedtuple
+import numpy as np
+from roboticstoolbox import DHRobot, ERobot
+from roboticstoolbox.tools.trajectory import jtraj, ctraj
+from spatialmath import SE3
 
-Trajectory = namedtuple('Trajectory', ('T', 'q', 'qDot', 'qDotDot', 'x', 'xDot', 'xDotDot'))
+Trajectory = namedtuple('Trajectory', ('T', 
+    'q', 'qDot', 'qDotDot', 
+    'x', 'xDot', 'xDotDot'
+))
 def TrajectoryPlanning(type: str, source: str, robot: DHRobot|ERobot, q0: np.ndarray, T1: SE3, t: np.ndarray):
     T0 = robot.fkine(q0)
     x0 = PoseToCart(robot.fkine(q0))
     if type == 'cart':
         if source == 'rtb':
-            traj = ctraj(T0, T1, t)
-            T = [SE3(pose) for pose in traj.A]
+            traj = ctraj(T0, T1, t); arr = [arr for arr in traj.A if arr is not None]
+            T = [SE3(pose) for pose in arr]
             xRef = [PoseToCart(SE3(pose)) for pose in traj.A]; xDotRef = GetDot(xRef, x0); xDotDotRef = GetDot(xDotRef, x0)
         elif source == 'custom':
-            xRef, xDotRef, xDotDotRef = quinticEndEffectorTraj(T0, T1, t)
+            xRef, xDotRef, xDotDotRef = QuinticEndEffectorTraj(T0, T1, t)
             T = [CartToPose(x) for x in xRef]
         qRef = qDotRef = qDotDotRef = [None for i in range(len(T))]            
         traj = Trajectory([CartToPose(x) for x in xRef], qRef, qDotRef, qDotDotRef, xRef, xDotRef, xDotDotRef)
@@ -27,14 +30,14 @@ def TrajectoryPlanning(type: str, source: str, robot: DHRobot|ERobot, q0: np.nda
             T = [robot.fkine(q) for q in traj.q]
             qRef = traj.q; qDotRef = traj.qd; qDotDotRef = traj.qdd
         elif source == 'custom':
-            qRef, qDotRef, qDotDotRef = quinticJointTraj(q0, T1, t)
+            qRef, qDotRef, qDotDotRef = QuinticJointTraj(q0, q1, t)
             T = [robot.fkine(q) for q in qRef]
         xRef = [PoseToCart(pose) for pose in T]; xDotRef = GetDot(xRef, x0); xDotDotRef = GetDot(xDotRef, x0)
         traj = Trajectory(T, qRef, qDotRef, qDotDotRef, xRef, xDotRef, xDotDotRef)
     return traj
 
-def quinticEndEffectorTraj(T0, T1, t):
-    x0 = PoseToCart(T1)
+def QuinticEndEffectorTraj(T0: SE3, T1: SE3, t: np.ndarray):
+    x0 = PoseToCart(T0)
     x1 = PoseToCart(T1)
         
     # Matrix T
@@ -54,14 +57,14 @@ def quinticEndEffectorTraj(T0, T1, t):
         Q = np.array([
         # ---Initial---
             [x0[i]],
-            [0]
+            [0],
+            [0],
         # ---Final---
             [x1[i]],
             [0],
             [0]
         ])
-
-        C = np.append(C, np.linalg.solve(T, Q), axis=1)
+        C = np.append(C, np.linalg.lstsq(T,Q, rcond=None)[0], axis=1)
         
     tt = np.array([np.ones(t.shape), t, t**2, t**3, t**4, t**5]).T
     
@@ -71,7 +74,7 @@ def quinticEndEffectorTraj(T0, T1, t):
 
     return xRef, xDoTRef, xDotDoTRef
 
-def quinticJointTraj(q0, q1, t):
+def QuinticJointTraj(q0: np.ndarray, q1: np.ndarray, t: np.ndarray):
     # Matrix T
     T = np.array([
     # ---Initial---
@@ -97,7 +100,7 @@ def quinticJointTraj(q0, q1, t):
             [0]
         ])
 
-        C = np.append(C, np.linalg.solve(T, Q), axis=1)
+        C = np.append(C, np.linalg.lstsq(T,Q, rcond=None)[0], axis=1)
 
     tt = np.array([np.ones(t.shape), t, t**2, t**3, t**4, t**5]).T
     

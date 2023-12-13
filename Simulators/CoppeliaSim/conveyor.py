@@ -1,4 +1,4 @@
-from settings import Settings, Conveyor as Conv
+from settings import Conveyor as Conv
 from Simulators.CoppeliaSim.objects import CoppeliaObj
 
 import math
@@ -9,7 +9,7 @@ class Conveyor(CoppeliaObj):
         self.sim = sim
         self.handle = self.sim.getObjectHandle(Conv.path)
 
-    def Move(self, vel: int):
+    def Move(self, vel: float):
         self.sim.writeCustomTableData(self.handle,'__ctrl__',{"vel":vel})
 
     def CheckStopped(self):

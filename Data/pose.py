@@ -1,5 +1,3 @@
-from settings import Gripper
-
 import numpy as np
 from spatialmath import SE3
 
@@ -19,6 +17,6 @@ class Pose:
             self.rpy = rpy
             self.T = SE3.Trans(
                 self.x, self.y, self.z
-            )*SE3.RPY(self.rpy, order = 'zyx') # pre defined order => zyx
+            )*SE3.RPY(self.rpy, order = 'zyx')
 
         return self.T

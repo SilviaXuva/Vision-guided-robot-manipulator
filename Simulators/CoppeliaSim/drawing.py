@@ -23,19 +23,13 @@ class Drawing(CoppeliaObj):
         def __init__(self, sim, tipHandle: str, color: list) -> None:
             self.sim = sim
             self.tipHandle = tipHandle
-            self.obj = self.sim.addDrawingObject(self.sim.drawing_lines|self.sim.drawing_cyclic, 2, 0, -1, 200, color)
+            self.obj = self.sim.addDrawingObject(self.sim.drawing_lines|self.sim.drawing_cyclic, 2, 0, -1, 100, color)
             self.pos = np.array(self.sim.getObjectPosition(self.tipHandle, self.sim.handle_world))
 
         def UpdateLine(self, pos: np.ndarray):
             pos = np.array(pos)
             line = np.concatenate([self.pos, pos])
             self.sim.addDrawingObjectItem(self.obj, line.tolist())
-            # x_axis = np.concatenate([pos, np.array([pos[0]+0.05, pos[1], pos[2]])])
-            # y_axis = np.concatenate([pos, np.array([pos[0], pos[1]+0.05, pos[2]])])
-            # z_axis = np.concatenate([pos, np.array([pos[0], pos[1], pos[2]+0.05])])
-            # self.sim.addDrawingObjectItem(self.obj, x_axis.tolist())
-            # self.sim.addDrawingObjectItem(self.obj, y_axis.tolist())
-            # self.sim.addDrawingObjectItem(self.obj, z_axis.tolist())
             self.pos = pos
             
     class Ref(DrawingObject):

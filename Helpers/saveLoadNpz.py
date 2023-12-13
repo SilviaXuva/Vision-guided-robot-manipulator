@@ -1,4 +1,3 @@
-from settings import Settings
 import numpy as np
 
 data = {
@@ -32,7 +31,7 @@ data = {
     "corners_h_k": 0.04,
 }
 
-file = Settings
+file = ''
 
 def Save():
     np.savez(file, **data)

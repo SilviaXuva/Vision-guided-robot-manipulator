@@ -1,6 +1,3 @@
-import numpy as np
-from spatialmath import SE3
-
 class Measures():
     def __init__(self, q=[], qDot=[], qDotDot=[], x=[], xDot=[], xDotDot=[]) -> None:
         self.q = q

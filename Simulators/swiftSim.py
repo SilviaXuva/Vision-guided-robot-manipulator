@@ -1,8 +1,8 @@
-from Simulators.sim import Sim
 from settings import Settings
+from Simulators.sim import Sim
 
-from swift import Swift
 import numpy as np
+from swift import Swift
 
 class SwiftSim(Sim, Swift):
     def __init__(self, robot) -> None:

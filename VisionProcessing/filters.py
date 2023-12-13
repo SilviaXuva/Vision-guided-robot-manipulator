@@ -1,28 +1,23 @@
-from settings import Camera
-from VisionProcessing.preProcessing import data
 from VisionProcessing.guiFeatures import drawingCircle, pink
+from VisionProcessing.preProcessing import data
 
 import cv2
 import numpy as np
-import os
 
-if os.path.isfile(Camera.preProcessingParametersPath):
-    data = np.load(Camera.preProcessingParametersPath)
-else:
-    data = {
-        "blur_ksize": (5,5),
-        "blur_sigmax": 0,
-        "canny_a": 10,
-        "canny_b": 50,
-        "thresh_thresh": 0,
-        "thresh_maxval": 255,
-        "corners_gf_maxcorners": 100,
-        "corners_gf_qualitylevel": 0.01,
-        "corners_gf_mindistance": 10,
-        "corners_h_blocksize": 2,
-        "corners_h_ksize": 3,
-        "corners_h_k": 0.04,
-    }
+data = {
+    "blur_ksize": (5,5),
+    "blur_sigmax": 0,
+    "canny_a": 10,
+    "canny_b": 50,
+    "thresh_thresh": 0,
+    "thresh_maxval": 255,
+    "corners_gf_maxcorners": 100,
+    "corners_gf_qualitylevel": 0.01,
+    "corners_gf_mindistance": 10,
+    "corners_h_blocksize": 2,
+    "corners_h_ksize": 3,
+    "corners_h_k": 0.04,
+}
 
 # ============== Blur ===================
 def GetBlur(img: np.ndarray, ksize: tuple = data["blur_ksize"], sigmax: int = data["blur_sigmax"]):

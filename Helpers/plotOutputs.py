@@ -1,6 +1,6 @@
-import pandas as pd
 import glob
 import numpy as np
+import pandas as pd
 
 def plotOutputs(number_joints = 7, measures = ['', 'Dot', 'DotDot'], cart = True, joint = True, folder = r'.\Outputs\Joint Controller\Joint Rtb Trajectory\2023-12-05_16h45m35s', show = False):
     if not show:
@@ -63,5 +63,5 @@ def plotOutputs(number_joints = 7, measures = ['', 'Dot', 'DotDot'], cart = True
                     plt.show()
                     fig.savefig(fr'{target_folder}\{key}\{options[key]["data"]}{measure}_{figure["name"]}.png')
             
-plotOutputs(folder = r'.\Outputs\2023-12-12_00h57m08s')
+plotOutputs(folder = r'.\Outputs\2023-12-12_19h31m51s')
             

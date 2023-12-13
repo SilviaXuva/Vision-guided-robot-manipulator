@@ -1,9 +1,8 @@
+from Data.pose import Pose
+from Helpers.meanSquareError import MeanSquareError
 from settings import Settings, Aruco as ArucoMarkers
-from Simulators.CoppeliaSim import Camera
 from VisionProcessing.colorBasedFilters import MaskRanges, GetGray
 from VisionProcessing.guiFeatures import WriteText, DrawingFrame
-from Helpers.meanSquareError import MeanSquareError
-from Data.pose import Pose
 
 import cv2
 import numpy as np
@@ -29,11 +28,13 @@ class Marker():
         self.realObjectCameraT = realObjectCameraT; self.realObjectWorldT = realObjectWorldT
 
 class ArucoVision():
-    def __init__(self, Camera: Camera) -> None:
+    def __init__(self, Camera) -> None:
+        Settings.Log(f'Init Aruco Vision...')
         self.Camera = Camera
         self.intrinsicMatrix = Camera.intrinsicMatrix    
         self.distortionCoefficients = Camera.distortionCoefficients  
         self.extrinsicMatrix = Camera.extrinsicMatrix
+        self.Process()
 
     def Process(self):
         self.detected = []
@@ -42,6 +43,8 @@ class ArucoVision():
         self.Draw()
         self.DrawPose()
         self.EstimateArucoPose()
+    
+    def ShowImg(self):
         cv2.imshow('Frame', self.Camera.frame)
         cv2.imshow('Processed', self.processedFrame)
         cv2.imshow('Draw', self.drawFrame)
@@ -149,15 +152,6 @@ class ArucoVision():
     def PrintEstimatePose(self, marker: Marker):
         if marker.T is not None:
             Settings.Log(f'========== ID: {marker.id}__Color: {marker.color} ============')
-            Settings.Log('---------- Object to camera ------------')
-            Settings.Log('---------- r ------------')
-            Settings.Log('Estimated:', marker.objectCameraT.rpy())
-            Settings.Log('Real:', marker.realObjectCameraT.rpy())
-            Settings.Log('Error:', MeanSquareError(marker.objectCameraT.rpy(), marker.realObjectCameraT.rpy()))
-            Settings.Log('---------- t ------------')
-            Settings.Log('Estimated:', marker.objectCameraT.t)
-            Settings.Log('Real:', marker.realObjectCameraT.t)
-            Settings.Log('Error:', MeanSquareError(marker.objectCameraT.t, marker.realObjectCameraT.t))               
             Settings.Log('---------- Object to world ------------')
             Settings.Log('---------- r ------------')
             Settings.Log('Estimated:', marker.objectWorldT.rpy())

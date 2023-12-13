@@ -9,7 +9,7 @@ def PoseToCart(T: SE3):
     x[:3] = T.A[:3, -1]
     # Angular
     x[3:] = base.tr2rpy(T.A, order='zyx', check=False)
-    return x
+    return np.array(x)
 
 def CartToPose(x: np.ndarray):
     T = SE3.Trans(x[:3])*SE3.RPY(x[3:], order = 'zyx')

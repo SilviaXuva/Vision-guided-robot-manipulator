@@ -1,9 +1,10 @@
-from Simulators.sim import Sim
 from settings import Settings
+from Simulators.sim import Sim
 from Simulators.CoppeliaSim import Drawing, ClearDrawing, RobotiqGripper, Camera, Conveyor, ProximitySensor, Cuboids
+from VisionProcessing.aruco import ArucoVision
 
-from zmqRemoteApi import RemoteAPIClient
 import numpy as np
+from zmqRemoteApi import RemoteAPIClient
 
 class CoppeliaSim(Sim):
     def __init__(self, 
@@ -12,6 +13,7 @@ class CoppeliaSim(Sim):
             drawing: bool = False, 
             gripper: bool = False, 
             camera: bool = False, 
+            arucoVision: bool = False,
             createCuboids: bool = False
         ) -> None:
         Sim.__init__(self, robot)
@@ -27,13 +29,15 @@ class CoppeliaSim(Sim):
             self.sim.loadScene(fr'C:\Users\silvi\Documents\UFSCar\TCC\Python\My-repositories\Files\Scenes\{scene}')
         self.GetJoints()
         self.LockJoints()
-    
+
         if drawing:
             self.Drawing = Drawing(self.sim)
         if gripper:
             self.Gripper = RobotiqGripper(self.client, self.sim)
         if camera:
-            self.Camera = Camera(self.sim)            
+            self.Camera = Camera(self.sim)
+        if arucoVision:
+            self.ArucoVision = ArucoVision(self.Camera)
         if createCuboids:
             self.Conveyor = Conveyor(self.sim)
             self.ProximitySensor = ProximitySensor(self.sim)
@@ -41,14 +45,13 @@ class CoppeliaSim(Sim):
             self.moveRobot = False
         else:
             self.moveRobot = True
-        
-        self.Step()
 
     def Start(self):
         Sim.Start(self, 'Coppelia')
         self.sim.setInt32Param(self.sim.intparam_idle_fps, 0)
         self.client.setStepping(True)
         self.sim.startSimulation()
+        self.client.step()
 
     def Stop(self):
         Sim.Stop(self, 'Coppelia')
@@ -86,12 +89,18 @@ class CoppeliaSim(Sim):
         if hasattr(self, 'Camera'):
             self.Camera.GetImg()
         
+        if hasattr(self, 'ArucoVision'):
+            self.ArucoVision.Process()
+            self.ArucoVision.ShowImg()
+        
         if hasattr(self, 'Conveyor'):
             if self.ProximitySensor.CheckProximity():
                 self.Conveyor.Move(0)
                 if self.Conveyor.CheckStopped():
-                    self.moveRobot = True                
+                    self.moveRobot = True
             else:
-                self.Conveyor.Move(0.01)
+                self.Conveyor.Move(0.1)
+            if self.ProximitySensor.CallCuboidCreation() and self.Cuboids.created < self.Cuboids.maxCreation:
+                self.Cuboids.CreateCuboid()
 
         self.client.step()

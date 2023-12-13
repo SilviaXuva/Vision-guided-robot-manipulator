@@ -1,9 +1,9 @@
 from settings import Settings, Camera as Cam
 from Simulators.CoppeliaSim.objects import CoppeliaObj
 
+import cv2
 import numpy as np
 from spatialmath import SE3
-import cv2
 
 class Camera(CoppeliaObj):
     def __init__(self, sim) -> None:
@@ -12,6 +12,7 @@ class Camera(CoppeliaObj):
         self.GetParameters()
         self.GetIntrinsicMatrix()
         self.GetExtrinsicMatrix()
+        self.GetImg()
 
     def GetParameters(self):
         self.resX, self.resY = self.sim.getVisionSensorRes(self.handle)
@@ -46,8 +47,4 @@ class Camera(CoppeliaObj):
     def GetImg(self):
         frame, resX, resY = self.sim.getVisionSensorCharImage(self.handle)
         frame = np.frombuffer(frame, dtype=np.uint8).reshape(resY, resX, 3)
-
-        # In CoppeliaSim images are left to right (x-axis), and bottom to top (y-axis)
-        # (consistent with the axes of vision sensors, pointing Z outwards, Y up)
-        # and color format is RGB triplets, whereas OpenCV uses BGR:
         self.frame = cv2.flip(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), 0)

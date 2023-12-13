@@ -1,10 +1,10 @@
-import sys
-import numpy as np
-import json
-import os
-from datetime import datetime
-from spatialmath import SE3
 import cv2
+from datetime import datetime
+import json
+import numpy as np
+import os
+from spatialmath import SE3
+import sys
 
 class Logger(object):
     def __init__(self, folder):
@@ -40,11 +40,18 @@ class Settings:
     logPath = fr'{executionPath}\output.log'
     Ts = 0.05
     Ttol = 10
-    
+    t = np.arange(0, 5 + Ts, Ts)
+    Kp = np.array([5, 5, 5, 5, 5, 5, 5])
+    tol = np.array([0.02,0.055])
+    trajectoryType = 'joint'
+    trajectorySource = 'custom'    
+    controller = 'joint'
+
 class Cuboids:
     path = './ref_cuboid'
     bodyPath = './ref_body'
     markerPath = './ref_marker{id}'
+    maxCreation = 5
 
 class ProximitySensor:
     path = './proximitySensor'
@@ -56,7 +63,6 @@ class Camera:
     sensorPath = './camera1'
     distortionCoefficients = None #np.array(distortionCoefficients)
     frameRotation = SE3.Rz(np.pi)
-    preProcessingParametersPath = ''
 
 class Aruco:
     dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_6X6_250)
@@ -74,4 +80,4 @@ class Aruco:
 
 class Gripper:
     rotation = SE3.RPY([-np.pi, 0, 0])
-    increaseHeight = 0.15
+    increaseHeight = 0.1

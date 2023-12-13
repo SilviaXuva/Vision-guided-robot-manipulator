@@ -4,17 +4,17 @@ from VisionProcessing.aruco import Marker
 import numpy as np
 
 deg = np.pi/180
-green = Marker(None, 1, 'green', T = Pose(
-    x = 0.600, y = 0.15, z = 0.525,
-    r_xyz = [0, 0, 0]
+green = Marker(None, id = 1, color = 'green', T = Pose(
+    x = 0.600, y = 0.15, z = 0.250,
+    r_xyz = [0, 0, 100*deg]
 ))
 
-blue = Marker(None, 2, 'blue', T = Pose(
-    x = 0.600, y = 0, z = 0.525, 
-    r_xyz = [0, 0, 0]
+blue = Marker(None, id = 2, color = 'blue', T = Pose(
+    x = 0.600, y = 0, z = 0.250, 
+    r_xyz = [0, 0, -125*deg]
 ))
 
-red = Marker(None, 3, 'red', T = Pose(
-    x = 0.600, y = -0.15, z = 0.525,
+red = Marker(None, id = 3, color = 'red', T = Pose(
+    x = 0.600, y = -0.15, z = 0.250,
     r_xyz = [0, 0, 60*deg]
 ))

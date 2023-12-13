@@ -72,7 +72,7 @@ class RobotiqGripper(CoppeliaObj):
         
         self.simIK.applyIkEnvironmentToScene(self.ikEnv, self.ikGroup1)
         self.simIK.applyIkEnvironmentToScene(self.ikEnv, self.ikGroup2)
-            
+
 class GripperChildScript:
     def __init__(self, client, sim, gripper_name = './ROBOTIQ85'):
         Settings.Log('Init Gripper...')

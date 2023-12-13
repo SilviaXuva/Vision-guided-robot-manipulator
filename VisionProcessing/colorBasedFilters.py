@@ -1,9 +1,7 @@
-from settings import Camera
 from VisionProcessing.preProcessing import data
 
 import cv2
 import numpy as np
-import os
 
 ranges = {
     "red": {
