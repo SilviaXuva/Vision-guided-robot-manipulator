@@ -38,8 +38,7 @@ def CartesianSpaceController(robot: DHRobot|ERobot, Kp: np.ndarray, TRef: SE3, x
     if xDoTRef is not None:
         controlSignal = controlSignal + xDoTRef
     qDotControl = InverseDifferentialKinematics(robot, q, controlSignal, qDotRef)
-    qControl = q + qDotControl*Settings.Ts
-    return qControl, qDotControl
+    return qDotControl
 
 def JointSpaceController(robot: DHRobot|ERobot, Kp: np.ndarray, q: np.ndarray, qRef: np.ndarray, qDotRef: np.ndarray):
     qErr = qRef - q
@@ -48,5 +47,4 @@ def JointSpaceController(robot: DHRobot|ERobot, Kp: np.ndarray, q: np.ndarray, q
     else:
         Kp = np.diag(Kp)
     qDotControl = controlSignal = Kp@qErr + qDotRef
-    qControl = q + qDotControl*Settings.Ts
-    return qControl, qDotControl
+    return qDotControl

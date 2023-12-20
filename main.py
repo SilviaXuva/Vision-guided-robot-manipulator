@@ -31,7 +31,7 @@ while len(coppelia.ArucoVision.detected) > 0 or coppelia.Cuboids.created < coppe
                     if not success:
                         success = True
                     else:
-                        qRef0 = q0 = coppelia.GetJointsPosition()
+                        q0 = qRef0 = qDotRef0 = coppelia.GetJointsPosition()
                         traj = TrajectoryPlanning(
                             type = target.trajectoryType, 
                             source = target.trajectorySource, 
@@ -40,16 +40,17 @@ while len(coppelia.ArucoVision.detected) > 0 or coppelia.Cuboids.created < coppe
                             T1 = target.T, 
                             t = target.t
                         )
-                        for TRef, qRef, qDotRef, xRef, xDotRef in zip(traj.T, traj.q, traj.qDot, traj.x, traj.xDot):
+                        for TRef, qRef, qDotRef, qDotDotRef, xRef, xDotRef in zip(traj.T, traj.q, traj.qDot, traj.qDotDot, traj.x, traj.xDot):
                             q = coppelia.GetJointsPosition()
                             if qRef is None:
                                 qRef = robotDh.ikine_LMS(TRef).q
                                 qDotRef = GetDot([qRef], qRef0)[0]
-                                qRef0 = qRef
+                                qDotDotRef = GetDot([qDotRef], qDotRef0)[0]
+                                qRef0 = qRef; qDotRef0 = qDotRef
                             if target.controller == 'cart':
-                                _, qDotControl = CartesianSpaceController(robotDh, target.Kp, q, TRef, xDotRef, qDotRef)
+                                qDotControl = CartesianSpaceController(robotDh, target.Kp, q, TRef, xDotRef, qDotRef)
                             elif target.controller == 'joint':
-                                _, qDotControl = JointSpaceController(robotDh, target.Kp, q, qRef, qDotRef)
+                                qDotControl = JointSpaceController(robotDh, target.Kp, q, qRef, qDotRef)
                             elif target.controller is None:
                                 qDotControl = InverseDifferentialKinematics()
                             elif target.controller == 'rtb':

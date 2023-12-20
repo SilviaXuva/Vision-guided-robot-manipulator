@@ -39,10 +39,10 @@ class Settings:
     Log = Logger(executionPath)
     logPath = fr'{executionPath}\output.log'
     Ts = 0.05
-    Ttol = 10
-    t = np.arange(0, 5 + Ts, Ts)
-    Kp = np.array([5, 5, 5, 5, 5, 5, 5])
-    tol = np.array([0.02,0.055])
+    Ttol = 5
+    t = np.arange(0, Ttol + Ts, Ts)
+    Kp = 5 # np.array([5, 5, 5, 5, 5, 5, 5])
+    tol = np.array([0.02, 0.055])
     trajectoryType = 'joint'
     trajectorySource = 'custom'    
     controller = 'joint'
