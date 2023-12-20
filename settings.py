@@ -42,9 +42,9 @@ class Settings:
     Ttol = 5
     t = np.arange(0, Ttol + Ts, Ts)
     Kp = 5 # np.array([5, 5, 5, 5, 5, 5, 5])
-    tol = np.array([0.02, 0.055])
+    tol = np.array([0.05, 0.055])
     trajectoryType = 'joint'
-    trajectorySource = 'custom'    
+    trajectorySource = 'rtb'    
     controller = 'joint'
 
 class Cuboids:
